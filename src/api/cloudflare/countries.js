@@ -1,3 +1,7 @@
+import express from 'express';
+import axios from 'axios';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/countries:
@@ -52,7 +56,22 @@
  *       500:
  *         description: 服务器错误
  */
-// 获取区域请求数据（用于柱状图）
+router.get('/countries', async (req, res) => {
+  try {
+    const cfAccountId = req.query.cf_account_id;
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken || !cfAccountId) {
+      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+    }
+    const days = parseInt(req.query.days) || 7;
+    const data = await getCountryAnalytics(days, cfAccountId, cfApiToken);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching country analytics:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
   const now = new Date();
   const startDate = new Date(now);
@@ -117,9 +136,8 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
 
     const groups = accounts[0].httpRequests1dGroups || [];
 
-    // 聚合所有日期的国家数据
     const countryMap = new Map();
-    const countryTimeSeries = new Map(); // 存储每个国家的时间序列
+    const countryTimeSeries = new Map();
 
     groups.forEach((group) => {
       const date = group.dimensions?.date;
@@ -128,7 +146,6 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
       countries.forEach((country) => {
         const name = country.clientCountryName || "Unknown";
 
-        // 聚合总数
         if (!countryMap.has(name)) {
           countryMap.set(name, { requests: 0, bytes: 0 });
         }
@@ -138,7 +155,6 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
           existing.bytes += country.bytes || 0;
         }
 
-        // 存储时间序列
         if (!countryTimeSeries.has(name)) {
           countryTimeSeries.set(name, []);
         }
@@ -150,7 +166,6 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
       });
     });
 
-    // 转换为数组并排序
     const result = Array.from(countryMap.entries())
       .map(([country, data]) => ({
         country,
@@ -170,18 +185,4 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
   }
 }
 
-router.get('/countries', async (req, res) => {
-  try {
-    const cfAccountId = req.query.cf_account_id;
-    const cfApiToken = req.query.cf_api_token;
-    if (!cfApiToken || !cfAccountId) {
-      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
-    }
-    const days = parseInt(req.query.days) || 7;
-    const data = await getCountryAnalytics(days, cfAccountId, cfApiToken);
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Error fetching country analytics:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+export default router;

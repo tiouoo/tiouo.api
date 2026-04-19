@@ -1,3 +1,7 @@
+import express from 'express';
+import axios from 'axios';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/verify:
@@ -34,8 +38,7 @@
  *       500:
  *         description: 服务器错误
  */
-// 验证 Token
-router.get('/verify', async (req, res) => {
+router.post('/verify', async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) {
@@ -58,3 +61,5 @@ router.get('/verify', async (req, res) => {
     });
   }
 });
+
+export default router;

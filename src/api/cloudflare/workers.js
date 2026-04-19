@@ -1,3 +1,7 @@
+import express from 'express';
+import axios from 'axios';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/workers:
@@ -51,6 +55,7 @@ router.get('/workers', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 async function getWorkers(cfAccountId, cfApiToken) {
   try {
     const response = await axios.get(
@@ -72,3 +77,5 @@ async function getWorkers(cfAccountId, cfApiToken) {
     return [];
   }
 }
+
+export default router;

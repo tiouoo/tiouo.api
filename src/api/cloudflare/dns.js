@@ -1,3 +1,7 @@
+import express from 'express';
+import axios from 'axios';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/dns/cname:
@@ -53,7 +57,6 @@ router.post('/dns/cname', async (req, res) => {
   try {
     const { apiToken, zoneId, name, content, proxied = false } = req.body;
 
-    // 验证必填参数
     if (!apiToken || !zoneId || !content) {
       return res.status(400).json({
         success: false,
@@ -61,14 +64,13 @@ router.post('/dns/cname', async (req, res) => {
       });
     }
 
-    // 调用 Cloudflare API
     const response = await axios.post(
       `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`,
       {
         type: 'CNAME',
         name: name || '@',
         content,
-        ttl: 1, // 自动
+        ttl: 1,
         proxied,
       },
       {
@@ -79,7 +81,6 @@ router.post('/dns/cname', async (req, res) => {
       }
     );
 
-    // 返回结果
     if (response.data.success) {
       res.json({
         success: true,
@@ -100,3 +101,5 @@ router.post('/dns/cname', async (req, res) => {
     });
   }
 });
+
+export default router;

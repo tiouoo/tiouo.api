@@ -9,7 +9,6 @@ const __dirname = dirname(__filename);
 const apiDir = __dirname;
 
 function shouldIgnore(filename) {
-  if (filename.startsWith('@')) return true;
   const ignorePatterns = ['index.js', '@index.js', '.js.bak', '.backup.js'];
   return ignorePatterns.includes(filename);
 }
@@ -44,10 +43,14 @@ function getApiFiles(dir, basePath = '') {
 }
 
 function getPrefixFromPath(relativePath) {
-  const segments = relativePath.split(/[/\\]/).filter(Boolean);
-  if (segments.length <= 1) return '';
-  segments.pop();
-  return segments.join('/');
+  const segments = relativePath.split(/[/\\]/);
+  const routeSegments = segments
+    .map((seg) => {
+      if (seg === 'index') return '';
+      return seg;
+    })
+    .filter(Boolean);
+  return routeSegments.join('/');
 }
 
 async function createRouter() {

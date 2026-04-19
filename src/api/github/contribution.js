@@ -1,3 +1,8 @@
+import express from 'express';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+const router = express.Router();
+
 /**
  * @swagger
  * tags:
@@ -103,31 +108,20 @@ router.get('/contribution', async (req, res) => {
   }
 });
 
-/**
- * 获取GitHub用户的贡献墙数据
- * @param {string} username GitHub用户名
- * @param {number} year 年份，默认为当前年份，-1表示获取所有年份
- * @param {number} limit 限制返回的周数，默认为0（不限制）
- * @returns {Promise<GithubWallData>} 用户贡献数据和个人信息
- */
 async function getGithubWallData(username, year = -1, limit = 0) {
   try {
     if (!username) {
       throw new Error('Missing username');
     }
 
-    // 获取用户个人信息
     const userInfo = await fetchGithubUserInfo(username);
 
     let yearsData = [];
 
-    // 如果year为-1，获取所有年份的数据
     if (year === -1) {
       yearsData = await getAllYearsContributions(username);
     } else {
-      // 获取指定年份的贡献数据
       const contributionData = await getGithubContributions(username, year, limit);
-      // 将单个年份的数据按照相同的格式添加到数组中
       yearsData = [
         {
           year,
@@ -142,7 +136,6 @@ async function getGithubWallData(username, year = -1, limit = 0) {
       total += data.total;
     });
 
-    // 返回统一的数据结构
     return {
       username: userInfo.login || username,
       displayName: userInfo.name || username,
@@ -159,22 +152,14 @@ async function getGithubWallData(username, year = -1, limit = 0) {
   }
 }
 
-/**
- * 获取用户所有年份的贡献数据
- * @param {string} username GitHub用户名
- * @returns {Promise<YearContributionData[]>} 所有年份的贡献数据数组
- */
 async function getAllYearsContributions(username) {
   try {
     const currentYear = new Date().getFullYear();
-    // 创建一个数组来存储所有年份的数据
     const allYearsData = [];
 
-    // 获取最近10年的数据
     for (let year = currentYear; year >= currentYear - 10; year--) {
       try {
         const yearData = await getGithubContributions(username, year, 0);
-        // 将年份数据添加到数组中
         if (yearData.total > 0) {
           allYearsData.push({
             year,
@@ -184,7 +169,6 @@ async function getAllYearsContributions(username) {
         }
       } catch (error) {
         console.warn(`Failed to fetch data for year ${year}:`, error.message);
-        // 如果某年数据获取失败，跳过该年
         continue;
       }
     }
@@ -196,11 +180,6 @@ async function getAllYearsContributions(username) {
   }
 }
 
-/**
- * 获取GitHub用户的个人信息
- * @param {string} username GitHub用户名
- * @returns {Promise<GithubUserInfo>} 用户个人信息
- */
 async function fetchGithubUserInfo(username) {
   try {
     const response = await axios.get(`https://api.github.com/users/${username}`);
@@ -213,7 +192,6 @@ async function fetchGithubUserInfo(username) {
     };
   } catch (error) {
     console.error('Error fetching GitHub user info:', error);
-    // 返回默认值，不中断主流程
     return {
       login: username,
       name: username,
@@ -230,22 +208,17 @@ async function getGithubContributions(username, year = -1, limit = 0) {
       throw new Error('Missing username');
     }
 
-    // 构建GitHub贡献页面URL
     const url = `https://github.com/users/${username}/contributions?to=${year > 0 ? year : new Date().getFullYear()}-01-01`;
 
-    // 获取HTML内容
     const response = await axios.get(url);
     const html = response.data;
 
-    // 使用cheerio解析HTML
     const $ = cheerio.load(html);
 
-    // 获取总贡献数
     const contributionText = $('.js-yearly-contributions h2').text().trim();
     const totalMatch = contributionText.match(/[0-9,]+/);
     const total = totalMatch ? parseInt(totalMatch[0].replace(/,/g, ''), 10) : 0;
 
-    // 收集每日贡献数据
     const data = {};
 
     $('.js-calendar-graph .ContributionCalendar-day').each((_idx, element) => {
@@ -265,7 +238,6 @@ async function getGithubContributions(username, year = -1, limit = 0) {
       };
     });
 
-    // 获取贡献计数
     $('.js-calendar-graph tool-graph tool-tip').each((_idx, element) => {
       const el = $(element);
       const tooltipId = el.attr('for');
@@ -278,7 +250,6 @@ async function getGithubContributions(username, year = -1, limit = 0) {
       data[tooltipId].count = count;
     });
 
-    // 整理数据格式
     const contributions = [];
     let weekIndex;
 
@@ -303,4 +274,5 @@ async function getGithubContributions(username, year = -1, limit = 0) {
   }
 }
 
-module.exports = { getGithubWallData, getGithubContributions };
+export default router;
+export { getGithubWallData, getGithubContributions };

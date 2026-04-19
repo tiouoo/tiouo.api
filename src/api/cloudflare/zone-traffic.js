@@ -1,3 +1,8 @@
+import express from 'express';
+import axios from 'axios';
+import { getZones } from './zones.js';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/zone-traffic:
@@ -63,8 +68,21 @@
  *       500:
  *         description: 服务器错误
  */
-// 获取单个域名的 Web 流量统计（请求、带宽、唯一访问者）
-const { getZones } = require('./zones');
+router.get('/zone-traffic', async (req, res) => {
+  try {
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken) {
+      return res.status(400).json({ success: false, error: 'Missing cf_api_token parameter' });
+    }
+    const zoneName = req.query.zone || 'yik.at';
+    const days = parseInt(req.query.days) || 7;
+    const data = await getZoneWebTraffic(zoneName, days, cfApiToken);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching zone traffic:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 async function getZoneWebTraffic(zoneName, days = 7, cfApiToken) {
   const zoneId = await getZoneIdByName(zoneName, cfApiToken);
@@ -78,7 +96,6 @@ async function getZoneWebTraffic(zoneName, days = 7, cfApiToken) {
 
   const formatDate = (d) => (d.toISOString().split("T")[0] || "");
 
-  // 根据天数选择使用日级别或小时级别数据
   if (days <= 1) {
     return await getZoneWebTrafficHourly(zoneId, startDate, now, cfApiToken);
   }
@@ -141,7 +158,6 @@ async function getZoneWebTraffic(zoneName, days = 7, cfApiToken) {
 
     const groups = zones[0].httpRequests1dGroups || [];
 
-    // 聚合总数据
     let totalRequests = 0,
       cachedRequests = 0,
       totalBytes = 0,
@@ -223,7 +239,6 @@ async function getZoneWebTraffic(zoneName, days = 7, cfApiToken) {
   }
 }
 
-// 获取小时级别的域名流量数据
 async function getZoneWebTrafficHourly(zoneId, startDate, endDate, cfApiToken) {
   const query = `
     query GetZoneWebTrafficHourly($zoneTag: String!, $start: DateTime!, $end: DateTime!) {
@@ -380,7 +395,6 @@ function getEmptyWebTraffic() {
   };
 }
 
-// 获取指定域名的 Zone ID
 async function getZoneIdByName(zoneName, cfApiToken) {
   const zones = await getZones(cfApiToken);
   const zone = zones.find(
@@ -389,20 +403,5 @@ async function getZoneIdByName(zoneName, cfApiToken) {
   return zone?.id || null;
 }
 
-router.get('/zone-traffic', async (req, res) => {
-  try {
-    const cfApiToken = req.query.cf_api_token;
-    if (!cfApiToken) {
-      return res.status(400).json({ success: false, error: 'Missing cf_api_token parameter' });
-    }
-    const zoneName = req.query.zone || 'yik.at';
-    const days = parseInt(req.query.days) || 7;
-    const data = await getZoneWebTraffic(zoneName, days, cfApiToken);
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Error fetching zone traffic:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-module.exports = { getZoneWebTraffic };
+export default router;
+export { getZoneWebTraffic };

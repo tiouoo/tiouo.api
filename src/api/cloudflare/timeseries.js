@@ -1,3 +1,7 @@
+import express from 'express';
+import axios from 'axios';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/timeseries:
@@ -56,7 +60,22 @@
  *       500:
  *         description: 服务器错误
  */
-// 获取请求时间序列数据（用于折线图）
+router.get('/timeseries', async (req, res) => {
+  try {
+    const cfAccountId = req.query.cf_account_id;
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken || !cfAccountId) {
+      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+    }
+    const days = parseInt(req.query.days) || 7;
+    const data = await getRequestsTimeSeries(days, cfAccountId, cfApiToken);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching time series:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 async function getRequestsTimeSeries(days = 7, cfAccountId, cfApiToken) {
   const now = new Date();
   const startDate = new Date(now);
@@ -141,7 +160,6 @@ async function getRequestsTimeSeries(days = 7, cfAccountId, cfApiToken) {
   }
 }
 
-// 获取小时级别时间序列数据
 async function getHourlyTimeSeries(startDate, endDate, cfAccountId, cfApiToken) {
   const query = `
     query GetHourlyTimeSeries($accountTag: String!, $start: DateTime!, $end: DateTime!) {
@@ -216,18 +234,4 @@ async function getHourlyTimeSeries(startDate, endDate, cfAccountId, cfApiToken) 
   }
 }
 
-router.get('/timeseries', async (req, res) => {
-  try {
-    const cfAccountId = req.query.cf_account_id;
-    const cfApiToken = req.query.cf_api_token;
-    if (!cfApiToken || !cfAccountId) {
-      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
-    }
-    const days = parseInt(req.query.days) || 7;
-    const data = await getRequestsTimeSeries(days, cfAccountId, cfApiToken);
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Error fetching time series:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+export default router;

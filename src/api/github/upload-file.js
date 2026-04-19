@@ -1,3 +1,7 @@
+import express from 'express';
+import axios from 'axios';
+const router = express.Router();
+
 /**
  * @swagger
  * /github/upload-file:
@@ -71,7 +75,6 @@ router.post('/upload-file', async (req, res) => {
   try {
     const { token, repo, branch, path, message, content } = req.body;
 
-    // 验证必填字段
     if (!token || !repo || !path || !content) {
       return res.status(400).json({
         success: false,
@@ -98,20 +101,18 @@ router.post('/upload-file', async (req, res) => {
         sha = checkResponse.data.sha;
       }
     } catch (error) {
-      // 文件不存在，继续创建
       if (error.response?.status !== 404) {
         throw error;
       }
     }
 
-    // 上传文件到 GitHub
     const uploadResponse = await axios.put(
       `https://api.github.com/repos/${repo}/contents/${path}`,
       {
         message: message || `Upload ${path}`,
         content,
         branch,
-        ...(sha && { sha }), // 如果文件存在，需要提供 sha 来更新
+        ...(sha && { sha }),
       },
       {
         headers: {
@@ -153,3 +154,5 @@ router.post('/upload-file', async (req, res) => {
     });
   }
 });
+
+export default router;

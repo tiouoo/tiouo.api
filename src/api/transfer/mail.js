@@ -1,3 +1,7 @@
+import express from 'express';
+import mailer from 'nodemailer';
+const router = express.Router();
+
 /**
  * @swagger
  * tags:
@@ -102,7 +106,7 @@
  *                 error:
  *                   type: string
  *                   example: "Error message"
- *     */
+ */
 router.post('/', async (req, res) => {
   const { to, content, subject, from, smtp } = req.body;
   if (

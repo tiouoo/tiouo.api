@@ -1,3 +1,7 @@
+import express from 'express';
+import axios from 'axios';
+const router = express.Router();
+
 /**
  * @swagger
  * /github/repo-info:
@@ -82,3 +86,5 @@ router.get('/repo-info', async (req, res) => {
     });
   }
 });
+
+export default router;

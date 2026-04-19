@@ -1,3 +1,7 @@
+import express from 'express';
+import axios from 'axios';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/zones:
@@ -74,3 +78,6 @@ router.get('/zones', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+export default router;
+export { getZones };

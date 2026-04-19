@@ -1,3 +1,8 @@
+import express from 'express';
+import { getZones } from './zones.js';
+import { getZoneWebTraffic } from './zone-traffic.js';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/all-zones-traffic:
@@ -42,9 +47,6 @@
  *       500:
  *         description: 服务器错误
  */
-const { getZoneWebTraffic } = require('./zone-traffic');
-const { getZones } = require('./zones');
-
 router.get('/all-zones-traffic', async (req, res) => {
   try {
     const cfApiToken = req.query.cf_api_token;
@@ -65,3 +67,5 @@ router.get('/all-zones-traffic', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+export default router;

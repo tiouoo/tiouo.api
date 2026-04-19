@@ -14,24 +14,6 @@ const swaggerDefinition = {
       description: 'Local development server',
     },
   ],
-  tags: [
-    {
-      name: 'Health',
-      description: '健康检查API',
-    },
-    {
-      name: 'Cloudflare',
-      description: 'Cloudflare分析和管理API',
-    },
-    {
-      name: 'GitHub',
-      description: 'GitHub数据相关API',
-    },
-    {
-      name: 'Mail',
-      description: '邮件发送API',
-    },
-  ],
 };
 
 const options = {

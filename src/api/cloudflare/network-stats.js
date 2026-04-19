@@ -1,3 +1,8 @@
+import express from 'express';
+import axios from 'axios';
+import { getZones } from './zones.js';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/network-stats:
@@ -60,8 +65,22 @@
  *       500:
  *         description: 服务器错误
  */
-// 获取网络统计数据（HTTP版本、SSL版本、内容类型）
-const { getZones } = require('./zones');
+router.get('/network-stats', async (req, res) => {
+  try {
+    const cfAccountId = req.query.cf_account_id;
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken || !cfAccountId) {
+      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+    }
+    const days = parseInt(req.query.days) || 7;
+    const zoneName = req.query.zone;
+    const data = await getNetworkStats(days, zoneName, cfAccountId, cfApiToken);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching network stats:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
   const now = new Date();
@@ -79,7 +98,6 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
   }
 
   if (zoneId) {
-    // 查询特定域名的网络统计数据
     query = `
       query GetZoneNetworkStats($zoneTag: String!, $start: Date!, $end: Date!) {
         viewer {
@@ -114,7 +132,6 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
       end: formatDate(now),
     };
   } else {
-    // 查询账户级别的网络统计数据
     query = `
       query GetAccountNetworkStats($accountTag: String!, $start: Date!, $end: Date!) {
         viewer {
@@ -185,15 +202,11 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
       groups = accounts[0].httpRequests1dGroups || [];
     }
 
-    // 聚合 HTTP 版本数据
     const httpVersionMap = new Map();
-    // 聚合 SSL 版本数据
     const sslVersionMap = new Map();
-    // 聚合内容类型数据
     const contentTypeMap = new Map();
 
     groups.forEach((group) => {
-      // HTTP 版本
       const httpVersions = group.sum?.clientHTTPVersionMap || [];
       httpVersions.forEach((item) => {
         const protocol = item.clientHTTPProtocol || "unknown";
@@ -203,7 +216,6 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
         );
       });
 
-      // SSL 版本
       const sslVersions = group.sum?.clientSSLMap || [];
       sslVersions.forEach((item) => {
         const protocol = item.clientSSLProtocol || "unknown";
@@ -213,7 +225,6 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
         );
       });
 
-      // 内容类型
       const contentTypes = group.sum?.contentTypeMap || [];
       contentTypes.forEach((item) => {
         const type = item.edgeResponseContentTypeName || "unknown";
@@ -224,7 +235,6 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
       });
     });
 
-    // 转换为数组并排序
     const httpVersions = Array.from(httpVersionMap.entries())
       .map(([name, requests]) => ({ name, requests }))
       .sort((a, b) => b.requests - a.requests);
@@ -247,7 +257,6 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
   }
 }
 
-// 获取指定域名的 Zone ID
 async function getZoneIdByName(zoneName, cfApiToken) {
   const zones = await getZones(cfApiToken);
   const zone = zones.find(
@@ -256,19 +265,4 @@ async function getZoneIdByName(zoneName, cfApiToken) {
   return zone?.id || null;
 }
 
-router.get('/network-stats', async (req, res) => {
-  try {
-    const cfAccountId = req.query.cf_account_id;
-    const cfApiToken = req.query.cf_api_token;
-    if (!cfApiToken || !cfAccountId) {
-      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
-    }
-    const days = parseInt(req.query.days) || 7;
-    const zoneName = req.query.zone;
-    const data = await getNetworkStats(days, zoneName, cfAccountId, cfApiToken);
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Error fetching network stats:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+export default router;

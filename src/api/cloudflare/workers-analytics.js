@@ -1,3 +1,7 @@
+import express from 'express';
+import axios from 'axios';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/workers-analytics:
@@ -59,6 +63,7 @@ router.get('/workers-analytics', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 async function getWorkersAnalytics(days = 7, cfAccountId, cfApiToken) {
   const now = new Date();
   const startDate = new Date(now);
@@ -129,7 +134,6 @@ async function getWorkersAnalytics(days = 7, cfAccountId, cfApiToken) {
 
     const invocations = accounts[0].workersInvocationsAdaptive || [];
 
-    // 按 Worker 名称分组
     const workerMap = new Map();
     invocations.forEach((invocation) => {
       const scriptName = invocation.dimensions?.scriptName || 'unknown';
@@ -148,9 +152,7 @@ async function getWorkersAnalytics(days = 7, cfAccountId, cfApiToken) {
       });
     });
 
-    // 转换为结果格式
     const workers = Array.from(workerMap.entries()).map(([name, timeSeries]) => {
-      // 计算总和
       let totalRequests = 0;
       let totalErrors = 0;
       let totalSubrequests = 0;
@@ -192,3 +194,5 @@ async function getWorkersAnalytics(days = 7, cfAccountId, cfApiToken) {
     return { workers: [] };
   }
 }
+
+export default router;

@@ -1,3 +1,7 @@
+import express from 'express';
+import { getGithubWallData } from './contribution.js';
+const router = express.Router();
+
 /**
  * @swagger
  * /github/wall:
@@ -75,8 +79,6 @@
  *               type: string
  *               example: "Internal server error"
  */
-const { getGithubWallData } = require('./contribution');
-
 router.get('/wall', async (req, res) => {
   try {
     const username = req.query.username;
@@ -100,16 +102,13 @@ router.get('/wall', async (req, res) => {
       });
     }
 
-    // 处理图片模式请求
     if (isPic) {
-      // TODO: 实现 generateContributionSVG 函数
       const svgContent = generateContributionSVG(wallData);
       res.setHeader('Content-Type', 'image/svg+xml');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // 缓存1小时
+      res.setHeader('Cache-Control', 'public, max-age=3600');
       return res.send(svgContent);
     }
 
-    // 处理HTML模式请求
     wallData.isBeauty = isBeauty || false;
     wallData.zoom = zoom || '100';
     return res.render('github-wall', wallData);
@@ -121,25 +120,17 @@ router.get('/wall', async (req, res) => {
   }
 });
 
-/**
- * 生成贡献墙的SVG图像
- * @param {Object} data 贡献数据
- * @returns {string} SVG内容
- */
 function generateContributionSVG(data) {
-  // SVG设置
   const cellSize = 11;
   const cellSpacing = 2;
   const weekWidth = cellSize + cellSpacing;
   const contributionColors = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
 
-  // 固定参数
-  const headerHeight = 60; // 头部高度
-  const yearSpacing = 50; // 年份间距
-  const leftPadding = 60; // 左侧填充
-  const dayLabelWidth = 30; // 星期标签宽度
+  const headerHeight = 60;
+  const yearSpacing = 50;
+  const leftPadding = 60;
+  const dayLabelWidth = 30;
 
-  // 计算SVG尺寸
   let maxWeeks = 0;
   let totalHeight = headerHeight;
   const yearSections = [];
@@ -148,10 +139,8 @@ function generateContributionSVG(data) {
     const weeks = yearData.contributions.length;
     maxWeeks = Math.max(maxWeeks, weeks);
 
-    // 每年的高度
-    const yearHeight = 30 + (cellSize + cellSpacing) * 7; // 年份标题 + 7天
+    const yearHeight = 30 + (cellSize + cellSpacing) * 7;
 
-    // 年份区域的Y位置
     const yearY = totalHeight;
     totalHeight += yearHeight + (yearIndex < data.contributions.length - 1 ? yearSpacing : 20);
 
@@ -163,16 +152,12 @@ function generateContributionSVG(data) {
     });
   });
 
-  // SVG的总宽度 = 左侧填充 + 最大周数 * 周宽度
   const svgWidth = leftPadding + dayLabelWidth + maxWeeks * weekWidth;
 
-  // 开始构建SVG内容
   let svg = `<svg width="${svgWidth}" height="${totalHeight}" viewBox="0 0 ${svgWidth} ${totalHeight}" xmlns="http://www.w3.org/2000/svg">`;
 
-  // 添加背景
   svg += `<rect width="${svgWidth}" height="${totalHeight}" fill="#ffffff"/>`;
 
-  // 添加样式
   svg += `
         <style>
             text {
@@ -189,19 +174,15 @@ function generateContributionSVG(data) {
         </style>
     `;
 
-  // 添加标题和用户信息
   svg += `<text x="20" y="25" class="title">${data.displayName}'s GitHub Contributions</text>`;
   svg += `<text x="20" y="45" class="subtitle">Total: ${data.total} contributions | Followers: ${data.followers} | Following: ${data.following}</text>`;
 
-  // 绘制每个年份的贡献数据
   data.contributions.forEach((yearData, yearIndex) => {
     const yearSection = yearSections[yearIndex];
     const baseY = yearSection ? yearSection.y : 0;
 
-    // 添加年份标题
     svg += `<text x="20" y="${baseY + 20}" class="year-title">${yearData.year} (${yearData.total} contributions)</text>`;
 
-    // 添加周几标签（左侧）
     const dayLabels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
     dayLabels.forEach((day, i) => {
       if (day) {
@@ -209,7 +190,6 @@ function generateContributionSVG(data) {
       }
     });
 
-    // 添加月份标签（顶部）
     const monthPositions = [];
     yearData.contributions.forEach((week, weekIndex) => {
       if (week && week[0]) {
@@ -228,20 +208,9 @@ function generateContributionSVG(data) {
       }
     });
 
-    // 添加月份标签
     const monthNames = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     monthPositions.forEach((pos, i) => {
       const nextX =
@@ -253,7 +222,6 @@ function generateContributionSVG(data) {
       svg += `<text x="${centerX}" y="${baseY + 30}" class="month-label">${monthNames[pos.month]}</text>`;
     });
 
-    // 绘制贡献格子
     yearData.contributions.forEach((week, weekIndex) => {
       if (!week) return;
 
@@ -264,13 +232,13 @@ function generateContributionSVG(data) {
           const x = leftPadding + dayLabelWidth + weekIndex * weekWidth;
           const y = baseY + 40 + dayIndex * (cellSize + cellSpacing);
 
-          svg += `<rect 
-                        x="${x}" 
-                        y="${y}" 
-                        width="${cellSize}" 
-                        height="${cellSize}" 
-                        fill="${fillColor}" 
-                        rx="2" 
+          svg += `<rect
+                        x="${x}"
+                        y="${y}"
+                        width="${cellSize}"
+                        height="${cellSize}"
+                        fill="${fillColor}"
+                        rx="2"
                         class="contrib-cell">
                         <title>${day.date}: ${day.count} contribution${day.count !== 1 ? 's' : ''}</title>
                     </rect>`;
@@ -279,9 +247,10 @@ function generateContributionSVG(data) {
     });
   });
 
-  // 添加水印
   svg += `<text x="${svgWidth - 120}" y="${totalHeight - 10}" style="font-size: 10px; fill: #586069;">Generated by yiiko.api</text>`;
 
   svg += '</svg>';
   return svg;
 }
+
+export default router;

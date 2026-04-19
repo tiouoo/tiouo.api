@@ -1,3 +1,8 @@
+import express from 'express';
+import axios from 'axios';
+import { getZones } from './zones.js';
+const router = express.Router();
+
 /**
  * @swagger
  * /cloudflare/analytics:
@@ -93,8 +98,21 @@
  *                 error:
  *                   type: string
  */
-// 使用 GraphQL 查询账户级别分析数据
-const { getZones } = require('./zones');
+router.get('/analytics', async (req, res) => {
+  try {
+    const cfAccountId = req.query.cf_account_id;
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken || !cfAccountId) {
+      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+    }
+    const days = parseInt(req.query.days) || 7;
+    const data = await getAccountAnalytics(days, cfAccountId, cfApiToken);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching Cloudflare analytics:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 async function queryAccountAnalytics(startDate, endDate, cfAccountId, cfApiToken) {
   const query = `
@@ -171,7 +189,6 @@ async function queryAccountAnalytics(startDate, endDate, cfAccountId, cfApiToken
   }
 }
 
-// 备用：通过 zones 查询分析数据
 async function queryZonesAnalytics(startDate, endDate, cfApiToken) {
   const zones = await getZones(cfApiToken);
   if (zones.length === 0) {
@@ -253,22 +270,6 @@ async function queryZonesAnalytics(startDate, endDate, cfApiToken) {
   );
 }
 
-router.get('/analytics', async (req, res) => {
-  try {
-    const cfAccountId = req.query.cf_account_id;
-    const cfApiToken = req.query.cf_api_token;
-    if (!cfApiToken || !cfAccountId) {
-      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
-    }
-    const days = parseInt(req.query.days) || 7;
-    const data = await getAccountAnalytics(days, cfAccountId, cfApiToken);
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Error fetching Cloudflare analytics:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 async function getAccountAnalytics(days = 7, cfAccountId, cfApiToken) {
   const now = new Date();
   const startDate = new Date(now);
@@ -318,3 +319,5 @@ async function getAccountAnalytics(days = 7, cfAccountId, cfApiToken) {
     return { error: error.message, requests: { value: 0, change: 0 }, bandwidth: { value: 0, change: 0 }, visits: { value: 0, change: 0 }, pageViews: { value: 0, change: 0 }, period: { start: '', end: '', days: 0 } };
   }
 }
+
+export default router;

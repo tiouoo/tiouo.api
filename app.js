@@ -1,5 +1,5 @@
 import express from 'express';
-import api from './src/api/@index.js';
+import apiPromise from './src/api/mouter.js';
 import { setupSwagger } from './src/service/swagger.js';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -19,7 +19,6 @@ const _dirname = dirname(filename);
 app.set('view engine', 'ejs');
 app.set('views', path.join(_dirname, 'src', 'views'));
 
-// 配置静态文件服务
 app.use('/static', express.static(path.join(_dirname, 'static')));
 
 app.use(express.json());
@@ -33,18 +32,23 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api', api);
-
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
-setupSwagger(app);
-
 const port = process.env.PORT || 3000;
 
-app.listen(port, () => {
-  console.log(`app listening on http://localhost:${port}`);
-});
+async function startServer() {
+  const api = await apiPromise;
+  app.use('/api', api);
+
+  app.get('/', (req, res) => {
+    res.send('Hello World!');
+  });
+
+  setupSwagger(app);
+
+  app.listen(port, () => {
+    console.log(`app listening on http://localhost:${port}`);
+  });
+}
+
+startServer();
 
 export default app;
