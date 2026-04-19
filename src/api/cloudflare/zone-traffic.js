@@ -68,13 +68,13 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.get('/zone-traffic', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const cfApiToken = req.query.cf_api_token;
     if (!cfApiToken) {
       return res.status(400).json({ success: false, error: 'Missing cf_api_token parameter' });
     }
-    const zoneName = req.query.zone || 'yik.at';
+    const zoneName = req.query.zone;
     const days = parseInt(req.query.days) || 7;
     const data = await getZoneWebTraffic(zoneName, days, cfApiToken);
     res.json({ success: true, data });
@@ -87,14 +87,21 @@ router.get('/zone-traffic', async (req, res) => {
 async function getZoneWebTraffic(zoneName, days = 7, cfApiToken) {
   const zoneId = await getZoneIdByName(zoneName, cfApiToken);
   if (!zoneId) {
-    return { error: `Zone not found: ${zoneName}`, requests: { total: 0, cached: 0, uncached: 0, max: 0, min: 0 }, bandwidth: { total: 0, cached: 0, uncached: 0, max: 0, min: 0 }, visitors: { total: 0, max: 0, min: 0 }, timeSeries: [], period: { start: '', end: '', days: 0 } };
+    return {
+      error: `Zone not found: ${zoneName}`,
+      requests: { total: 0, cached: 0, uncached: 0, max: 0, min: 0 },
+      bandwidth: { total: 0, cached: 0, uncached: 0, max: 0, min: 0 },
+      visitors: { total: 0, max: 0, min: 0 },
+      timeSeries: [],
+      period: { start: '', end: '', days: 0 },
+    };
   }
 
   const now = new Date();
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
 
-  const formatDate = (d) => (d.toISOString().split("T")[0] || "");
+  const formatDate = (d) => d.toISOString().split('T')[0] || '';
 
   if (days <= 1) {
     return await getZoneWebTrafficHourly(zoneId, startDate, now, cfApiToken);
@@ -129,7 +136,7 @@ async function getZoneWebTraffic(zoneName, days = 7, cfApiToken) {
 
   try {
     const response = await axios.post(
-      "https://api.cloudflare.com/client/v4/graphql",
+      'https://api.cloudflare.com/client/v4/graphql',
       {
         query,
         variables: {
@@ -141,13 +148,13 @@ async function getZoneWebTraffic(zoneName, days = 7, cfApiToken) {
       {
         headers: {
           Authorization: `Bearer ${cfApiToken}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       }
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
+      console.error('GraphQL errors:', response.data.errors);
       return getEmptyWebTraffic();
     }
 
@@ -231,10 +238,7 @@ async function getZoneWebTraffic(zoneName, days = 7, cfApiToken) {
       period: { start: formatDate(startDate), end: formatDate(now), days },
     };
   } catch (error) {
-    console.error(
-      "Zone web traffic query error:",
-      error.response?.data || error.message
-    );
+    console.error('Zone web traffic query error:', error.response?.data || error.message);
     return getEmptyWebTraffic();
   }
 }
@@ -269,7 +273,7 @@ async function getZoneWebTrafficHourly(zoneId, startDate, endDate, cfApiToken) {
 
   try {
     const response = await axios.post(
-      "https://api.cloudflare.com/client/v4/graphql",
+      'https://api.cloudflare.com/client/v4/graphql',
       {
         query,
         variables: {
@@ -281,13 +285,13 @@ async function getZoneWebTrafficHourly(zoneId, startDate, endDate, cfApiToken) {
       {
         headers: {
           Authorization: `Bearer ${cfApiToken}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       }
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
+      console.error('GraphQL errors:', response.data.errors);
       return getEmptyWebTraffic();
     }
 
@@ -347,7 +351,7 @@ async function getZoneWebTrafficHourly(zoneId, startDate, endDate, cfApiToken) {
     if (minBytes === Infinity) minBytes = 0;
     if (minVisitors === Infinity) minVisitors = 0;
 
-    const formatDate = (d) => (d.toISOString().split("T")[0] || "");
+    const formatDate = (d) => d.toISOString().split('T')[0] || '';
 
     return {
       requests: {
@@ -377,10 +381,7 @@ async function getZoneWebTrafficHourly(zoneId, startDate, endDate, cfApiToken) {
       },
     };
   } catch (error) {
-    console.error(
-      "Zone hourly traffic query error:",
-      error.response?.data || error.message
-    );
+    console.error('Zone hourly traffic query error:', error.response?.data || error.message);
     return getEmptyWebTraffic();
   }
 }
@@ -391,15 +392,13 @@ function getEmptyWebTraffic() {
     bandwidth: { total: 0, cached: 0, uncached: 0, max: 0, min: 0 },
     visitors: { total: 0, max: 0, min: 0 },
     timeSeries: [],
-    period: { start: "", end: "", days: 0 },
+    period: { start: '', end: '', days: 0 },
   };
 }
 
 async function getZoneIdByName(zoneName, cfApiToken) {
   const zones = await getZones(cfApiToken);
-  const zone = zones.find(
-    (z) => z.name === zoneName || z.name.includes(zoneName)
-  );
+  const zone = zones.find((z) => z.name === zoneName || z.name.includes(zoneName));
   return zone?.id || null;
 }
 

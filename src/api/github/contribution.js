@@ -85,7 +85,7 @@ const router = express.Router();
  *                   type: string
  *                   example: "Error: Internal server error"
  */
-router.get('/contribution', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const username = req.query.username;
     const year = Number(req.query.year ?? -1);

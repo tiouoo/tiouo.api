@@ -45,27 +45,24 @@ const router = express.Router();
 // 获取所有 Cloudflare 域名
 async function getZones(cfApiToken) {
   try {
-    const response = await axios.get(`${"https://api.cloudflare.com/client/v4"}/zones`, {
+    const response = await axios.get(`${'https://api.cloudflare.com/client/v4'}/zones`, {
       headers: {
         Authorization: `Bearer ${cfApiToken}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
     });
     if (!response.data.success) {
-      console.error("Zones API error:", response.data.errors);
+      console.error('Zones API error:', response.data.errors);
       return [];
     }
     return response.data.result || [];
   } catch (error) {
-    console.error(
-      "Failed to fetch zones:",
-      error.response?.data || error.message
-    );
+    console.error('Failed to fetch zones:', error.response?.data || error.message);
     return [];
   }
 }
 
-router.get('/zones', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const cfApiToken = req.query.cf_api_token;
     if (!cfApiToken) {
