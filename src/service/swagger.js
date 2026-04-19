@@ -6,7 +6,7 @@ const swaggerDefinition = {
   info: {
     title: 'tiouo.api',
     version: '1.0.0',
-    description: 'API documentation for yiiko.api services',
+    description: 'API documentation for tiouo.api services',
   },
   servers: [
     {
@@ -14,11 +14,29 @@ const swaggerDefinition = {
       description: 'Local development server',
     },
   ],
+  tags: [
+    {
+      name: 'Health',
+      description: '健康检查API',
+    },
+    {
+      name: 'Cloudflare',
+      description: 'Cloudflare分析和管理API',
+    },
+    {
+      name: 'GitHub',
+      description: 'GitHub数据相关API',
+    },
+    {
+      name: 'Mail',
+      description: '邮件发送API',
+    },
+  ],
 };
 
 const options = {
   swaggerDefinition,
-  apis: ['./src/api/*.js'],
+  apis: ['./src/api/**/*.js'],
 };
 
 const swaggerSpec = swaggerJSDoc(options);

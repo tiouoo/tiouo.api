@@ -1,3 +1,65 @@
+/**
+ * @swagger
+ * /cloudflare/network-stats:
+ *   get:
+ *     summary: 获取网络统计数据（HTTP版本、SSL版本、内容类型）
+ *     tags: [Cloudflare]
+ *     parameters:
+ *       - in: query
+ *         name: cf_account_id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cloudflare账户ID
+ *       - in: query
+ *         name: cf_api_token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cloudflare API Token
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 7
+ *         description: 查询天数（默认7天）
+ *       - in: query
+ *         name: zone
+ *         schema:
+ *           type: string
+ *         description: 域名名称（可选，不填则查询账户级别）
+ *     responses:
+ *       200:
+ *         description: 成功获取网络统计数据
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     httpVersions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                           requests:
+ *                             type: number
+ *                     sslVersions:
+ *                       type: array
+ *                     contentTypes:
+ *                       type: array
+ *       400:
+ *         description: 缺少必填参数
+ *       500:
+ *         description: 服务器错误
+ */
 // 获取网络统计数据（HTTP版本、SSL版本、内容类型）
 const { getZones } = require('./zones');
 

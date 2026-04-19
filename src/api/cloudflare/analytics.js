@@ -1,3 +1,98 @@
+/**
+ * @swagger
+ * /cloudflare/analytics:
+ *   get:
+ *     summary: 获取Cloudflare账户分析数据
+ *     tags: [Cloudflare]
+ *     parameters:
+ *       - in: query
+ *         name: cf_account_id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cloudflare账户ID
+ *       - in: query
+ *         name: cf_api_token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cloudflare API Token
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 7
+ *         description: 查询天数（默认7天）
+ *     responses:
+ *       200:
+ *         description: 成功获取分析数据
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     requests:
+ *                       type: object
+ *                       properties:
+ *                         value:
+ *                           type: number
+ *                         change:
+ *                           type: number
+ *                     bandwidth:
+ *                       type: object
+ *                       properties:
+ *                         value:
+ *                           type: number
+ *                         change:
+ *                           type: number
+ *                     visits:
+ *                       type: object
+ *                       properties:
+ *                         value:
+ *                           type: number
+ *                         change:
+ *                           type: number
+ *                     pageViews:
+ *                       type: object
+ *                       properties:
+ *                         value:
+ *                           type: number
+ *                         change:
+ *                           type: number
+ *                     period:
+ *                       type: object
+ *       400:
+ *         description: 缺少必填参数
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Missing cf_account_id or cf_api_token parameter"
+ *       500:
+ *         description: 服务器错误
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ */
 // 使用 GraphQL 查询账户级别分析数据
 const { getZones } = require('./zones');
 

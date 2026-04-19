@@ -1,3 +1,68 @@
+/**
+ * @swagger
+ * /cloudflare/zone-traffic:
+ *   get:
+ *     summary: 获取单个域名的Web流量统计
+ *     tags: [Cloudflare]
+ *     parameters:
+ *       - in: query
+ *         name: cf_api_token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cloudflare API Token
+ *       - in: query
+ *         name: zone
+ *         schema:
+ *           type: string
+ *           default: "yik.at"
+ *         description: 域名名称
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 7
+ *         description: 查询天数（默认7天）
+ *     responses:
+ *       200:
+ *         description: 成功获取流量数据
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     requests:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                         cached:
+ *                           type: number
+ *                         uncached:
+ *                           type: number
+ *                         max:
+ *                           type: number
+ *                         min:
+ *                           type: number
+ *                     bandwidth:
+ *                       type: object
+ *                     visitors:
+ *                       type: object
+ *                     timeSeries:
+ *                       type: array
+ *                     period:
+ *                       type: object
+ *       400:
+ *         description: 缺少cf_api_token参数
+ *       500:
+ *         description: 服务器错误
+ */
 // 获取单个域名的 Web 流量统计（请求、带宽、唯一访问者）
 const { getZones } = require('./zones');
 

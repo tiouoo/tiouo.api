@@ -1,3 +1,61 @@
+/**
+ * @swagger
+ * /cloudflare/timeseries:
+ *   get:
+ *     summary: 获取请求时间序列数据（用于折线图）
+ *     tags: [Cloudflare]
+ *     parameters:
+ *       - in: query
+ *         name: cf_account_id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cloudflare账户ID
+ *       - in: query
+ *         name: cf_api_token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cloudflare API Token
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 7
+ *         description: 查询天数（默认7天）
+ *     responses:
+ *       200:
+ *         description: 成功获取时间序列数据
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date:
+ *                         type: string
+ *                       requests:
+ *                         type: number
+ *                       bytes:
+ *                         type: number
+ *                       pageViews:
+ *                         type: number
+ *                       visits:
+ *                         type: number
+ *                       isHourly:
+ *                         type: boolean
+ *       400:
+ *         description: 缺少必填参数
+ *       500:
+ *         description: 服务器错误
+ */
 // 获取请求时间序列数据（用于折线图）
 async function getRequestsTimeSeries(days = 7, cfAccountId, cfApiToken) {
   const now = new Date();

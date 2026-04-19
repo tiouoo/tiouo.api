@@ -1,3 +1,51 @@
+/**
+ * @swagger
+ * /github/repo-info:
+ *   get:
+ *     summary: 获取GitHub仓库信息
+ *     tags: [GitHub]
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: GitHub Personal Access Token
+ *       - in: query
+ *         name: repo
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: 仓库路径（格式：owner/repo）
+ *     responses:
+ *       200:
+ *         description: 成功获取仓库信息
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     fullName:
+ *                       type: string
+ *                     defaultBranch:
+ *                       type: string
+ *                     private:
+ *                       type: boolean
+ *       400:
+ *         description: 缺少必填参数
+ *       404:
+ *         description: 仓库不存在
+ *       500:
+ *         description: 服务器错误
+ */
 router.get('/repo-info', async (req, res) => {
   try {
     const { token, repo } = req.query;

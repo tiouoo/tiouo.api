@@ -1,3 +1,72 @@
+/**
+ * @swagger
+ * /github/upload-file:
+ *   post:
+ *     summary: 上传文件到GitHub仓库
+ *     tags: [GitHub]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - repo
+ *               - path
+ *               - content
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: GitHub Personal Access Token
+ *               repo:
+ *                 type: string
+ *                 description: 仓库路径（格式：owner/repo）
+ *               branch:
+ *                 type: string
+ *                 description: 分支名称（可选，默认为仓库默认分支）
+ *               path:
+ *                 type: string
+ *                 description: 文件路径
+ *               message:
+ *                 type: string
+ *                 description: 提交信息
+ *               content:
+ *                 type: string
+ *                 description: 文件内容（Base64编码）
+ *     responses:
+ *       200:
+ *         description: 上传成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                     rawUrl:
+ *                       type: string
+ *                     path:
+ *                       type: string
+ *                     sha:
+ *                       type: string
+ *       400:
+ *         description: 缺少必填参数
+ *       401:
+ *         description: Token无效或已过期
+ *       404:
+ *         description: 仓库不存在或无权访问
+ *       422:
+ *         description: 文件路径或内容格式错误
+ *       500:
+ *         description: 服务器错误
+ */
 router.post('/upload-file', async (req, res) => {
   try {
     const { token, repo, branch, path, message, content } = req.body;

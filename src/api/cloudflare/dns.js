@@ -1,3 +1,54 @@
+/**
+ * @swagger
+ * /cloudflare/dns/cname:
+ *   post:
+ *     summary: 添加CNAME记录
+ *     tags: [Cloudflare]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - apiToken
+ *               - zoneId
+ *               - content
+ *             properties:
+ *               apiToken:
+ *                 type: string
+ *                 description: Cloudflare API Token
+ *               zoneId:
+ *                 type: string
+ *                 description: 域名区域ID
+ *               name:
+ *                 type: string
+ *                 description: 记录名称（默认为@）
+ *               content:
+ *                 type: string
+ *                 description: CNAME记录值
+ *               proxied:
+ *                 type: boolean
+ *                 default: false
+ *                 description: 是否启用Cloudflare代理
+ *     responses:
+ *       200:
+ *         description: 添加成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: 缺少必填参数
+ *       500:
+ *         description: 服务器错误
+ */
 router.post('/dns/cname', async (req, res) => {
   try {
     const { apiToken, zoneId, name, content, proxied = false } = req.body;
