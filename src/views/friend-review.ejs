@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>友链审核</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        .review-container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .avatar-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #eee;
+            background: #f5f5f5;
+        }
+
+        .btn-primary {
+            background-color: #1677ff;
+            border-color: #1677ff;
+        }
+
+        .btn-danger {
+            background-color: #ff4d4f;
+            border-color: #ff4d4f;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+            color: #1677ff;
+        }
+
+        .status-badge {
+            margin-left: 15px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background-color: #faad14;
+            color: white;
+        }
+
+        .status-approved {
+            background-color: #52c41a;
+            color: white;
+        }
+
+        .status-rejected {
+            background-color: #ff4d4f;
+            color: white;
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .alert {
+            margin-bottom: 20px;
+        }
+
+        /* 差异样式 */
+        .diff {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .diff-line {
+            white-space: pre-wrap;
+        }
+
+        .diff-line-delete {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .diff-line-add {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .diff-line-neutral {
+            background-color: #f5f5f5;
+            color: #757575;
+        }
+
+        /* 友链类型标识 */
+        .type-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .type-new {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .type-update {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="review-container">
+        <div class="header">
+            <h1>友链审核</h1>
+            <span id="status-badge" class="status-badge status-pending">待审核</span>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <form id="reviewForm">
+            <div class="row mb-3">
+                <div class="col-md-3 text-center">
+                    <img id="avatarPreview" class="avatar-preview mb-2"
+                        src="https://blog.yik.at/static/img/erravatar.png" alt="头像预览">
+                    <div class="form-text">头像预览</div>
+                </div>
+                <div class="col-md-9">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">网站名称</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="link" class="form-label">网站链接</label>
+                        <input type="url" class="form-control" id="link" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="avatarLink" class="form-label">头像链接</label>
+                        <input type="url" class="form-control" id="avatarLink" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">联系邮箱</label>
+                        <input type="email" class="form-control" id="email" readonly>
+                        <div class="form-text">申请者的联系邮箱（只读）</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="descr" class="form-label">网站描述</label>
+                <textarea class="form-control" id="descr" rows="3" required></textarea>
+            </div>
+
+            <!-- 友链类型标识 -->
+            <div id="friendTypeBadge" class="mb-3"></div>
+
+            <!-- 文件变更预览区域 -->
+            <div class="mb-4">
+                <h3 class="h6 mb-3">GitHub 文件变更预览</h3>
+                <div id="diffContainer" class="border rounded p-3 bg-light"
+                    style="max-height: 400px; overflow-y: auto;">
+                    <div class="text-center text-muted py-4">
+                        <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
+                        <p>加载变更预览中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="rejectReasonContainer" class="mb-3 d-none">
+                <label for="rejectReason" class="form-label">拒绝理由</label>
+                <textarea class="form-control" id="rejectReason" rows="2"></textarea>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    <button type="button" class="btn btn-danger me-2" id="rejectBtn">拒绝申请</button>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-primary" id="approveBtn">创建友链PR</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="loading" class="loading d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+    </div>
+
+    <script>
+        // 获取URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        const pwd = urlParams.get('pwd');
+
+        // 检查必要参数
+        if (!id || !pwd) {
+            showAlert('缺少必要参数，无法加载友链信息', 'danger');
+            disableForm();
+        }
+
+        // DOM元素
+        const nameInput = document.getElementById('name');
+        const linkInput = document.getElementById('link');
+        const avatarLinkInput = document.getElementById('avatarLink');
+        const descrInput = document.getElementById('descr');
+        const emailInput = document.getElementById('email');
+        const avatarPreview = document.getElementById('avatarPreview');
+        const approveBtn = document.getElementById('approveBtn');
+        const rejectBtn = document.getElementById('rejectBtn');
+        const rejectReasonContainer = document.getElementById('rejectReasonContainer');
+        const rejectReason = document.getElementById('rejectReason');
+        const statusBadge = document.getElementById('status-badge');
+        const loading = document.getElementById('loading');
+        const diffContainer = document.getElementById('diffContainer');
+        const friendTypeBadge = document.getElementById('friendTypeBadge');
+        let friendApplyType = 'new'; // 默认是新友链申请
+
+        // 状态枚举
+        const STATUS = {
+            PENDING: '待审核',
+            APPROVED: '已通过',
+            REJECTED: '已拒绝'
+        };
+
+        // 加载友链信息
+        async function loadFriendInfo() {
+            showLoading();
+            try {
+                const response = await fetch(`/api/friend/detail?id=${id}&pwd=${pwd}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || '加载失败');
+                }
+
+                const data = result.data;
+                nameInput.value = data.name || '';
+                linkInput.value = data.link || '';
+                avatarLinkInput.value = data.avatarLink || '';
+                descrInput.value = data.descr || '';
+                emailInput.value = data.email || '';
+
+                // 更新头像预览
+                if (data.avatarLink) {
+                    avatarPreview.src = data.avatarLink;
+                    avatarPreview.onerror = () => {
+                        avatarPreview.src = 'https://blog.yik.at/static/img/erravatar.png';
+                    };
+                }
+
+                // 更新状态
+                updateStatus(data.state || STATUS.PENDING);
+
+                // 处理友链类型
+                friendApplyType = data.originalLink ? 'update' : 'new';
+                updateFriendTypeBadge();
+
+                // 如果已经拒绝，显示拒绝理由
+                if (data.state === STATUS.REJECTED) {
+                    rejectReasonContainer.classList.remove('d-none');
+                    rejectReason.value = data.rejectReason || '';
+                }
+
+                // 如果已经有状态，禁用相应按钮
+                if (data.state === STATUS.APPROVED) {
+                    approveBtn.disabled = true;
+                    rejectBtn.disabled = true;
+                    showAlert('该友链申请已通过，无法再次操作', 'info');
+                } else if (data.state === STATUS.REJECTED) {
+                    rejectBtn.disabled = true;
+                    showAlert('该友链申请已被拒绝，可以重新审核通过', 'info');
+                }
+
+                // 加载变更预览
+                await loadDiffPreview();
+
+            } catch (error) {
+                showAlert(`获取友链信息失败: ${error.message}`, 'danger');
+                disableForm();
+                // 显示错误信息在变更预览区域
+                diffContainer.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        加载变更预览失败: ${error.message}
+                    </div>
+                `;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 更新友链类型标识
+        function updateFriendTypeBadge() {
+            friendTypeBadge.innerHTML = `
+                <span class="type-badge type-${friendApplyType}">
+                    ${friendApplyType === 'new' ? '新友链申请' : '友链更新申请'}
+                </span>
+            `;
+        }
+
+        // 加载变更预览
+        async function loadDiffPreview() {
+            try {
+                const response = await fetch(`/api/friend/preview-diff?id=${id}&pwd=${pwd}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || '加载变更预览失败');
+                }
+
+                const data = result.data;
+                renderDiff(data.diff);
+            } catch (error) {
+                console.error('加载变更预览失败:', error);
+                diffContainer.innerHTML = `
+                    <div class="alert alert-warning mb-0">
+                        加载变更预览失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染差异内容
+        function renderDiff(diffText) {
+            if (!diffText) {
+                diffContainer.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <p>没有检测到变更</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 检查是否只包含新内容（没有旧内容）
+            const lines = diffText.split('\n');
+            const hasOldContent = lines.some(line => line.startsWith('- '));
+
+            let html = '<div class="diff">';
+
+            // 添加提示信息，如果没有旧内容
+            if (!hasOldContent && friendApplyType === 'update') {
+                html += `<div class="alert alert-warning mb-4">
+                    <strong>注意：</strong> 未找到原始友链信息。这可能是因为：
+                    <ul>
+                        <li>原始链接不存在于 GitHub 文件中</li>
+                        <li>原始链接格式不匹配</li>
+                        <li>这是一个新的友链申请</li>
+                    </ul>
+                    系统将创建一个新的友链条目。
+                </div>`;
+            }
+
+            lines.forEach(line => {
+                if (line.startsWith('- ')) {
+                    html += `<div class="diff-line diff-line-delete">${line}</div>`;
+                } else if (line.startsWith('+ ')) {
+                    html += `<div class="diff-line diff-line-add">${line}</div>`;
+                } else if (line.startsWith('  ')) {
+                    html += `<div class="diff-line diff-line-neutral">${line}</div>`;
+                } else if (line.startsWith('#')) {
+                    // 处理注释行
+                    html += `<div class="diff-line text-muted">${line}</div>`;
+                } else {
+                    html += `<div class="diff-line">${line}</div>`;
+                }
+            });
+
+            html += '</div>';
+            diffContainer.innerHTML = html;
+        }
+
+        // 更新状态显示
+        function updateStatus(status) {
+            statusBadge.textContent = status;
+            statusBadge.className = 'status-badge';
+
+            if (status === STATUS.PENDING) {
+                statusBadge.classList.add('status-pending');
+            } else if (status === STATUS.APPROVED) {
+                statusBadge.classList.add('status-approved');
+            } else if (status === STATUS.REJECTED) {
+                statusBadge.classList.add('status-rejected');
+            }
+        }
+
+        // 创建PR
+        async function createPR() {
+            if (!validateForm()) return;
+
+            showLoading();
+            try {
+                // 先更新信息
+                await updateFriendInfo();
+
+                // 创建PR
+                const response = await fetch('/api/friend/create-pr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id,
+                        pwd
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || '创建PR失败');
+                }
+
+                showAlert(`PR创建成功！<a href="${result.prUrl}" target="_blank">点击查看PR</a>`, 'success');
+                updateStatus(STATUS.APPROVED);
+                approveBtn.disabled = true;
+                rejectBtn.disabled = true;
+
+            } catch (error) {
+                showAlert(`创建PR失败: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 拒绝申请
+        async function rejectApplication() {
+            rejectReasonContainer.classList.remove('d-none');
+
+            // 如果已经显示了拒绝理由输入框，则执行拒绝操作
+            if (!rejectReasonContainer.classList.contains('d-none') && rejectReason.value) {
+                showLoading();
+                try {
+                    // 先更新信息
+                    await updateFriendInfo();
+
+                    // 拒绝申请
+                    const response = await fetch('/api/friend/reject', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id,
+                            pwd,
+                            reason: rejectReason.value
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (!result.success) {
+                        throw new Error(result.error || '拒绝申请失败');
+                    }
+
+                    showAlert('友链申请已拒绝', 'warning');
+                    updateStatus(STATUS.REJECTED);
+                    rejectBtn.disabled = true;
+
+                } catch (error) {
+                    showAlert(`拒绝申请失败: ${error.message}`, 'danger');
+                } finally {
+                    hideLoading();
+                }
+            } else {
+                rejectBtn.textContent = '确认拒绝';
+                rejectBtn.classList.add('btn-danger');
+            }
+        }
+
+        // 更新友链信息
+        async function updateFriendInfo() {
+            if (!validateForm()) throw new Error('表单验证失败');
+
+            try {
+                const response = await fetch('/api/friend/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id,
+                        pwd,
+                        name: nameInput.value,
+                        link: linkInput.value,
+                        avatarLink: avatarLinkInput.value,
+                        descr: descrInput.value,
+                        email: emailInput.value,
+                        state: statusBadge.textContent
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || '更新信息失败');
+                }
+
+                return result;
+
+            } catch (error) {
+                throw new Error(`更新友链信息失败: ${error.message}`);
+            }
+        }
+
+        // 表单验证
+        function validateForm() {
+            if (!nameInput.value) {
+                showAlert('请输入网站名称', 'danger');
+                return false;
+            }
+            if (!linkInput.value) {
+                showAlert('请输入网站链接', 'danger');
+                return false;
+            }
+            if (!avatarLinkInput.value) {
+                showAlert('请输入头像链接', 'danger');
+                return false;
+            }
+            if (!descrInput.value) {
+                showAlert('请输入网站描述', 'danger');
+                return false;
+            }
+            // 邮箱是只读的，不需要验证
+            return true;
+        }
+
+        // 显示提示信息
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+        }
+
+        // 禁用表单
+        function disableForm() {
+            const form = document.getElementById('reviewForm');
+            const inputs = form.querySelectorAll('input, textarea, button');
+            inputs.forEach(input => {
+                input.disabled = true;
+            });
+        }
+
+        // 显示加载中
+        function showLoading() {
+            loading.classList.remove('d-none');
+        }
+
+        // 隐藏加载中
+        function hideLoading() {
+            loading.classList.add('d-none');
+        }
+
+        // 监听头像链接变化
+        avatarLinkInput.addEventListener('input', () => {
+            if (avatarLinkInput.value) {
+                avatarPreview.src = avatarLinkInput.value;
+            } else {
+                avatarPreview.src = 'https://blog.yik.at/static/img/erravatar.png';
+            }
+        });
+
+        // 绑定按钮事件
+        approveBtn.addEventListener('click', createPR);
+        rejectBtn.addEventListener('click', rejectApplication);
+
+        // 页面加载完成后获取友链信息
+        document.addEventListener('DOMContentLoaded', loadFriendInfo);
+    </script>
+</body>
+
+</html>

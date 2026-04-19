@@ -1,0 +1,33 @@
+{
+  "name": "lioren.api",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "dev": "node --watch app.js",
+    "start": "node app.js",
+    "test": "node test.js",
+    "lint": "eslint . --fix",
+    "format": "prettier --write src/",
+    "c": "npm run lint && npm run format"
+  },
+  "dependencies": {
+    "@octokit/core": "^7.0.6",
+    "axios": "^1.12.2",
+    "cheerio": "^1.1.2",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "js-yaml": "^4.1.1",
+    "nodemailer": "^7.0.9",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "exports": {
+    "import": "./app.js",
+    "require": "./app.js"
+  },
+  "devDependencies": {
+    "eslint": "^9.32.0",
+    "prettier": "3.6.2"
+  }
+}
