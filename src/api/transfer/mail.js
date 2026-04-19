@@ -5,12 +5,12 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: Mail
- *   description: 邮件发送API
+ *   name: Transfer
+ *   description: 转移
  * /mail:
  *   post:
  *     summary: 发送邮件
- *     tags: [Mail]
+ *     tags: [Transfer]
  *     requestBody:
  *       required: true
  *       content:

@@ -71,7 +71,7 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.post('/upload-file', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { token, repo, branch, path, message, content } = req.body;
 

@@ -50,7 +50,7 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.get('/repo-info', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { token, repo } = req.query;
 

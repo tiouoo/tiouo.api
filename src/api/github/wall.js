@@ -79,7 +79,7 @@ const router = express.Router();
  *               type: string
  *               example: "Internal server error"
  */
-router.get('/wall', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const username = req.query.username;
     const year = Number(req.query.year ?? -1);
@@ -209,8 +209,18 @@ function generateContributionSVG(data) {
     });
 
     const monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     monthPositions.forEach((pos, i) => {
       const nextX =

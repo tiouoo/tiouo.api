@@ -28,7 +28,7 @@ const router = express.Router();
  */
 router.get('/', async (_req, res) => {
   res.json({
-    status: 'unhealthy',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
   });
 });
