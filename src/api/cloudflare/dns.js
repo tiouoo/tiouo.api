@@ -53,7 +53,7 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.post('/dns/cname', async (req, res) => {
+router.post('/cname', async (req, res) => {
   try {
     const { apiToken, zoneId, name, content, proxied = false } = req.body;
 
