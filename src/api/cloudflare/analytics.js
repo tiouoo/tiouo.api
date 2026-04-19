@@ -98,12 +98,14 @@ const router = express.Router();
  *                 error:
  *                   type: string
  */
-router.get('/analytics', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const cfAccountId = req.query.cf_account_id;
     const cfApiToken = req.query.cf_api_token;
     if (!cfApiToken || !cfAccountId) {
-      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
     }
     const days = parseInt(req.query.days) || 7;
     const data = await getAccountAnalytics(days, cfAccountId, cfApiToken);
@@ -139,7 +141,7 @@ async function queryAccountAnalytics(startDate, endDate, cfAccountId, cfApiToken
 
   try {
     const response = await axios.post(
-      "https://api.cloudflare.com/client/v4/graphql",
+      'https://api.cloudflare.com/client/v4/graphql',
       {
         query,
         variables: {
@@ -151,13 +153,13 @@ async function queryAccountAnalytics(startDate, endDate, cfAccountId, cfApiToken
       {
         headers: {
           Authorization: `Bearer ${cfApiToken}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       }
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
+      console.error('GraphQL errors:', response.data.errors);
       return { requests: 0, bandwidth: 0, visits: 0, pageViews: 0 };
     }
 
@@ -181,10 +183,7 @@ async function queryAccountAnalytics(startDate, endDate, cfAccountId, cfApiToken
 
     return { requests, bandwidth, visits, pageViews };
   } catch (error) {
-    console.error(
-      "GraphQL query error:",
-      error.response?.data || error.message
-    );
+    console.error('GraphQL query error:', error.response?.data || error.message);
     return { requests: 0, bandwidth: 0, visits: 0, pageViews: 0 };
   }
 }
@@ -221,7 +220,7 @@ async function queryZonesAnalytics(startDate, endDate, cfApiToken) {
     zones.map(async (zone) => {
       try {
         const response = await axios.post(
-          "https://api.cloudflare.com/client/v4/graphql",
+          'https://api.cloudflare.com/client/v4/graphql',
           {
             query,
             variables: {
@@ -233,7 +232,7 @@ async function queryZonesAnalytics(startDate, endDate, cfApiToken) {
           {
             headers: {
               Authorization: `Bearer ${cfApiToken}`,
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
           }
         );
@@ -278,12 +277,17 @@ async function getAccountAnalytics(days = 7, cfAccountId, cfApiToken) {
   const prevStartDate = new Date(startDate);
   prevStartDate.setDate(prevStartDate.getDate() - days);
 
-  const formatDate = (d) => (d.toISOString().split("T")[0] || "");
+  const formatDate = (d) => d.toISOString().split('T')[0] || '';
 
   try {
     const [current, prev] = await Promise.all([
       queryAccountAnalytics(formatDate(startDate), formatDate(now), cfAccountId, cfApiToken),
-      queryAccountAnalytics(formatDate(prevStartDate), formatDate(startDate), cfAccountId, cfApiToken),
+      queryAccountAnalytics(
+        formatDate(prevStartDate),
+        formatDate(startDate),
+        cfAccountId,
+        cfApiToken
+      ),
     ]);
 
     const calcChange = (curr, previous) => {
@@ -315,8 +319,15 @@ async function getAccountAnalytics(days = 7, cfAccountId, cfApiToken) {
       },
     };
   } catch (error) {
-    console.error("Error in getAccountAnalytics:", error.message);
-    return { error: error.message, requests: { value: 0, change: 0 }, bandwidth: { value: 0, change: 0 }, visits: { value: 0, change: 0 }, pageViews: { value: 0, change: 0 }, period: { start: '', end: '', days: 0 } };
+    console.error('Error in getAccountAnalytics:', error.message);
+    return {
+      error: error.message,
+      requests: { value: 0, change: 0 },
+      bandwidth: { value: 0, change: 0 },
+      visits: { value: 0, change: 0 },
+      pageViews: { value: 0, change: 0 },
+      period: { start: '', end: '', days: 0 },
+    };
   }
 }
 

@@ -65,12 +65,14 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.get('/network-stats', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const cfAccountId = req.query.cf_account_id;
     const cfApiToken = req.query.cf_api_token;
     if (!cfApiToken || !cfAccountId) {
-      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
     }
     const days = parseInt(req.query.days) || 7;
     const zoneName = req.query.zone;
@@ -87,14 +89,14 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
 
-  const formatDate = (d) => (d.toISOString().split("T")[0] || "");
+  const formatDate = (d) => d.toISOString().split('T')[0] || '';
 
   let query;
   let variables;
 
   let zoneId;
   if (zoneName) {
-    zoneId = await getZoneIdByName(zoneName, cfApiToken) || '';
+    zoneId = (await getZoneIdByName(zoneName, cfApiToken)) || '';
   }
 
   if (zoneId) {
@@ -169,7 +171,7 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
 
   try {
     const response = await axios.post(
-      "https://api.cloudflare.com/client/v4/graphql",
+      'https://api.cloudflare.com/client/v4/graphql',
       {
         query,
         variables,
@@ -177,13 +179,13 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
       {
         headers: {
           Authorization: `Bearer ${cfApiToken}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       }
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
+      console.error('GraphQL errors:', response.data.errors);
       return { httpVersions: [], sslVersions: [], contentTypes: [] };
     }
 
@@ -209,29 +211,20 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
     groups.forEach((group) => {
       const httpVersions = group.sum?.clientHTTPVersionMap || [];
       httpVersions.forEach((item) => {
-        const protocol = item.clientHTTPProtocol || "unknown";
-        httpVersionMap.set(
-          protocol,
-          (httpVersionMap.get(protocol) || 0) + (item.requests || 0)
-        );
+        const protocol = item.clientHTTPProtocol || 'unknown';
+        httpVersionMap.set(protocol, (httpVersionMap.get(protocol) || 0) + (item.requests || 0));
       });
 
       const sslVersions = group.sum?.clientSSLMap || [];
       sslVersions.forEach((item) => {
-        const protocol = item.clientSSLProtocol || "unknown";
-        sslVersionMap.set(
-          protocol,
-          (sslVersionMap.get(protocol) || 0) + (item.requests || 0)
-        );
+        const protocol = item.clientSSLProtocol || 'unknown';
+        sslVersionMap.set(protocol, (sslVersionMap.get(protocol) || 0) + (item.requests || 0));
       });
 
       const contentTypes = group.sum?.contentTypeMap || [];
       contentTypes.forEach((item) => {
-        const type = item.edgeResponseContentTypeName || "unknown";
-        contentTypeMap.set(
-          type,
-          (contentTypeMap.get(type) || 0) + (item.requests || 0)
-        );
+        const type = item.edgeResponseContentTypeName || 'unknown';
+        contentTypeMap.set(type, (contentTypeMap.get(type) || 0) + (item.requests || 0));
       });
     });
 
@@ -249,19 +242,14 @@ async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
 
     return { httpVersions, sslVersions, contentTypes };
   } catch (error) {
-    console.error(
-      "Network stats query error:",
-      error.response?.data || error.message
-    );
+    console.error('Network stats query error:', error.response?.data || error.message);
     return { httpVersions: [], sslVersions: [], contentTypes: [] };
   }
 }
 
 async function getZoneIdByName(zoneName, cfApiToken) {
   const zones = await getZones(cfApiToken);
-  const zone = zones.find(
-    (z) => z.name === zoneName || z.name.includes(zoneName)
-  );
+  const zone = zones.find((z) => z.name === zoneName || z.name.includes(zoneName));
   return zone?.id || null;
 }
 

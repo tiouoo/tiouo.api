@@ -48,12 +48,14 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.get('/workers-analytics', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const cfAccountId = req.query.cf_account_id;
     const cfApiToken = req.query.cf_api_token;
     if (!cfApiToken || !cfAccountId) {
-      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
     }
     const days = parseInt(req.query.days) || 7;
     const data = await getWorkersAnalytics(days, cfAccountId, cfApiToken);

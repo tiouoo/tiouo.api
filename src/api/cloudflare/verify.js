@@ -38,7 +38,7 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.post('/verify', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) {

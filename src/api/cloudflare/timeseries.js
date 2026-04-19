@@ -60,12 +60,14 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.get('/timeseries', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const cfAccountId = req.query.cf_account_id;
     const cfApiToken = req.query.cf_api_token;
     if (!cfApiToken || !cfAccountId) {
-      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
     }
     const days = parseInt(req.query.days) || 7;
     const data = await getRequestsTimeSeries(days, cfAccountId, cfApiToken);
@@ -81,7 +83,7 @@ async function getRequestsTimeSeries(days = 7, cfAccountId, cfApiToken) {
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
 
-  const formatDate = (d) => (d.toISOString().split("T")[0] || "");
+  const formatDate = (d) => d.toISOString().split('T')[0] || '';
 
   if (days <= 1) {
     return await getHourlyTimeSeries(startDate, now, cfAccountId, cfApiToken);
@@ -115,7 +117,7 @@ async function getRequestsTimeSeries(days = 7, cfAccountId, cfApiToken) {
 
   try {
     const response = await axios.post(
-      "https://api.cloudflare.com/client/v4/graphql",
+      'https://api.cloudflare.com/client/v4/graphql',
       {
         query,
         variables: {
@@ -127,13 +129,13 @@ async function getRequestsTimeSeries(days = 7, cfAccountId, cfApiToken) {
       {
         headers: {
           Authorization: `Bearer ${cfApiToken}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       }
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
+      console.error('GraphQL errors:', response.data.errors);
       return [];
     }
 
@@ -152,10 +154,7 @@ async function getRequestsTimeSeries(days = 7, cfAccountId, cfApiToken) {
       isHourly: false,
     }));
   } catch (error) {
-    console.error(
-      "Time series query error:",
-      error.response?.data || error.message
-    );
+    console.error('Time series query error:', error.response?.data || error.message);
     return [];
   }
 }
@@ -189,7 +188,7 @@ async function getHourlyTimeSeries(startDate, endDate, cfAccountId, cfApiToken) 
 
   try {
     const response = await axios.post(
-      "https://api.cloudflare.com/client/v4/graphql",
+      'https://api.cloudflare.com/client/v4/graphql',
       {
         query,
         variables: {
@@ -201,13 +200,13 @@ async function getHourlyTimeSeries(startDate, endDate, cfAccountId, cfApiToken) 
       {
         headers: {
           Authorization: `Bearer ${cfApiToken}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       }
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
+      console.error('GraphQL errors:', response.data.errors);
       return [];
     }
 
@@ -226,10 +225,7 @@ async function getHourlyTimeSeries(startDate, endDate, cfAccountId, cfApiToken) 
       isHourly: true,
     }));
   } catch (error) {
-    console.error(
-      "Hourly time series query error:",
-      error.response?.data || error.message
-    );
+    console.error('Hourly time series query error:', error.response?.data || error.message);
     return [];
   }
 }

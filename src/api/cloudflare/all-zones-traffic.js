@@ -47,7 +47,7 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.get('/all-zones-traffic', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const cfApiToken = req.query.cf_api_token;
     if (!cfApiToken) {

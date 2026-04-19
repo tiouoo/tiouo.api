@@ -56,12 +56,14 @@ const router = express.Router();
  *       500:
  *         description: 服务器错误
  */
-router.get('/countries', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const cfAccountId = req.query.cf_account_id;
     const cfApiToken = req.query.cf_api_token;
     if (!cfApiToken || !cfAccountId) {
-      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
     }
     const days = parseInt(req.query.days) || 7;
     const data = await getCountryAnalytics(days, cfAccountId, cfApiToken);
@@ -77,7 +79,7 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
 
-  const formatDate = (d) => (d.toISOString().split("T")[0] || "");
+  const formatDate = (d) => d.toISOString().split('T')[0] || '';
 
   const query = `
     query GetCountryAnalytics($accountTag: String!, $start: Date!, $end: Date!) {
@@ -107,7 +109,7 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
 
   try {
     const response = await axios.post(
-      "https://api.cloudflare.com/client/v4/graphql",
+      'https://api.cloudflare.com/client/v4/graphql',
       {
         query,
         variables: {
@@ -119,13 +121,13 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
       {
         headers: {
           Authorization: `Bearer ${cfApiToken}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       }
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
+      console.error('GraphQL errors:', response.data.errors);
       return [];
     }
 
@@ -144,7 +146,7 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
       const countries = group.sum?.countryMap || [];
 
       countries.forEach((country) => {
-        const name = country.clientCountryName || "Unknown";
+        const name = country.clientCountryName || 'Unknown';
 
         if (!countryMap.has(name)) {
           countryMap.set(name, { requests: 0, bytes: 0 });
@@ -177,10 +179,7 @@ async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
 
     return result;
   } catch (error) {
-    console.error(
-      "Country analytics query error:",
-      error.response?.data || error.message
-    );
+    console.error('Country analytics query error:', error.response?.data || error.message);
     return [];
   }
 }
