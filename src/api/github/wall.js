@@ -242,11 +242,11 @@ function generateContributionSVG(data) {
       'Dec',
     ];
     monthPositions.forEach((pos, i) => {
-      let nextX =
+      const nextX =
         i < monthPositions.length - 1
           ? monthPositions[i + 1].x
           : leftPadding + dayLabelWidth + yearData.contributions.length * weekWidth;
-      let centerX = pos.x + (nextX - pos.x) / 2;
+      const centerX = pos.x + (nextX - pos.x) / 2;
 
       svg += `<text x="${centerX}" y="${baseY + 30}" class="month-label">${monthNames[pos.month]}</text>`;
     });

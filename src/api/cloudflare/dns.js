@@ -16,9 +16,9 @@ router.post('/dns/cname', async (req, res) => {
       {
         type: 'CNAME',
         name: name || '@',
-        content: content,
+        content,
         ttl: 1, // 自动
-        proxied: proxied,
+        proxied,
       },
       {
         headers: {

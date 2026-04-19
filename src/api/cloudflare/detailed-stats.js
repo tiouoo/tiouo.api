@@ -232,7 +232,7 @@ async function queryDetailedStats(startDate, endDate, zoneTag) {
       groups = accounts[0].httpRequests1dGroups || [];
     }
 
-    let result = getEmptyDetailedStats();
+    const result = getEmptyDetailedStats();
 
     groups.forEach((group) => {
       result.requests += group.sum?.requests || 0;

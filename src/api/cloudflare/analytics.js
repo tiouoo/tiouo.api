@@ -208,7 +208,7 @@ async function getAccountAnalytics(days = 7) {
       period: {
         start: formatDate(startDate),
         end: formatDate(now),
-        days: days,
+        days,
       },
     };
   } catch (error) {

@@ -130,7 +130,7 @@ async function getGithubWallData(username, year = -1, limit = 0) {
       // 将单个年份的数据按照相同的格式添加到数组中
       yearsData = [
         {
-          year: year,
+          year,
           total: contributionData.total,
           contributions: contributionData.contributions,
         },
@@ -149,7 +149,7 @@ async function getGithubWallData(username, year = -1, limit = 0) {
       avatarUrl: userInfo.avatar_url || '',
       followers: userInfo.followers || 0,
       following: userInfo.following || 0,
-      total: total,
+      total,
       years: yearsData.length,
       contributions: yearsData,
     };
@@ -177,7 +177,7 @@ async function getAllYearsContributions(username) {
         // 将年份数据添加到数组中
         if (yearData.total > 0) {
           allYearsData.push({
-            year: year,
+            year,
             total: yearData.total,
             contributions: yearData.contributions,
           });
