@@ -1,13 +1,5 @@
-router.get('/zones', async (req, res) => {
-  try {
-    const zones = await getZones();
-    res.json({ success: true, data: zones });
-  } catch (error) {
-    console.error('Error fetching Cloudflare zones:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-async function getZones(): Promise<Zone[]> {
+// 获取所有 Cloudflare 域名
+async function getZones() {
   try {
     const response = await axios.get(`${"https://api.cloudflare.com/client/v4"}/zones`, {
       headers: {
@@ -28,3 +20,13 @@ async function getZones(): Promise<Zone[]> {
     return [];
   }
 }
+
+router.get('/zones', async (req, res) => {
+  try {
+    const zones = await getZones();
+    res.json({ success: true, data: zones });
+  } catch (error) {
+    console.error('Error fetching Cloudflare zones:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});

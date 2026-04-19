@@ -14,24 +14,21 @@ router.get('/all-zones-traffic', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-async function getZones(): Promise<Zone[]> {
+async function getZones() {
   try {
-    const response = await axios.get(`${"https://api.cloudflare.com/client/v4"}/zones`, {
+    const response = await axios.get(`${'https://api.cloudflare.com/client/v4'}/zones`, {
       headers: {
         Authorization: `Bearer ${CF_API_TOKEN}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
     });
     if (!response.data.success) {
-      console.error("Zones API error:", response.data.errors);
+      console.error('Zones API error:', response.data.errors);
       return [];
     }
     return response.data.result || [];
   } catch (error) {
-    console.error(
-      "Failed to fetch zones:",
-      error.response?.data || error.message
-    );
+    console.error('Failed to fetch zones:', error.response?.data || error.message);
     return [];
   }
 }

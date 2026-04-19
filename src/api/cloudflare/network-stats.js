@@ -1,3 +1,198 @@
+// 获取网络统计数据（HTTP版本、SSL版本、内容类型）
+async function getNetworkStats(days = 7, zoneName) {
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setDate(startDate.getDate() - days);
+
+  const formatDate = (d) => (d.toISOString().split("T")[0] || "");
+
+  let query;
+  let variables;
+
+  // 获取zoneId（如果提供了zoneName）
+  let zoneId;
+  if (zoneName) {
+    zoneId = await getZoneIdByName(zoneName) || '';
+  }
+
+  if (zoneId) {
+    // 查询特定域名的网络统计数据
+    query = `
+      query GetZoneNetworkStats($zoneTag: String!, $start: Date!, $end: Date!) {
+        viewer {
+          zones(filter: { zoneTag: $zoneTag }) {
+            httpRequests1dGroups(
+              limit: 100
+              filter: { date_geq: $start, date_lt: $end }
+            ) {
+              sum {
+                requests
+                clientHTTPVersionMap {
+                  clientHTTPProtocol
+                  requests
+                }
+                clientSSLMap {
+                  clientSSLProtocol
+                  requests
+                }
+                contentTypeMap {
+                  edgeResponseContentTypeName
+                  requests
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+    variables = {
+      zoneTag: zoneId,
+      start: formatDate(startDate),
+      end: formatDate(now),
+    };
+  } else {
+    // 查询账户级别的网络统计数据
+    query = `
+      query GetAccountNetworkStats($accountTag: String!, $start: Date!, $end: Date!) {
+        viewer {
+          accounts(filter: { accountTag: $accountTag }) {
+            httpRequests1dGroups(
+              limit: 100
+              filter: { date_geq: $start, date_lt: $end }
+            ) {
+              sum {
+                requests
+                clientHTTPVersionMap {
+                  clientHTTPProtocol
+                  requests
+                }
+                clientSSLMap {
+                  clientSSLProtocol
+                  requests
+                }
+                contentTypeMap {
+                  edgeResponseContentTypeName
+                  requests
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+    variables = {
+      accountTag: CF_ACCOUNT_ID,
+      start: formatDate(startDate),
+      end: formatDate(now),
+    };
+  }
+
+  try {
+    const response = await axios.post(
+      "https://api.cloudflare.com/client/v4/graphql",
+      {
+        query,
+        variables,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${CF_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.data.errors) {
+      console.error("GraphQL errors:", response.data.errors);
+      return { httpVersions: [], sslVersions: [], contentTypes: [] };
+    }
+
+    let groups = [];
+    if (zoneId) {
+      const zones = response.data?.data?.viewer?.zones;
+      if (!zones || zones.length === 0) {
+        return { httpVersions: [], sslVersions: [], contentTypes: [] };
+      }
+      groups = zones[0].httpRequests1dGroups || [];
+    } else {
+      const accounts = response.data?.data?.viewer?.accounts;
+      if (!accounts || accounts.length === 0) {
+        return { httpVersions: [], sslVersions: [], contentTypes: [] };
+      }
+      groups = accounts[0].httpRequests1dGroups || [];
+    }
+
+    // 聚合 HTTP 版本数据
+    const httpVersionMap = new Map();
+    // 聚合 SSL 版本数据
+    const sslVersionMap = new Map();
+    // 聚合内容类型数据
+    const contentTypeMap = new Map();
+
+    groups.forEach((group) => {
+      // HTTP 版本
+      const httpVersions = group.sum?.clientHTTPVersionMap || [];
+      httpVersions.forEach((item) => {
+        const protocol = item.clientHTTPProtocol || "unknown";
+        httpVersionMap.set(
+          protocol,
+          (httpVersionMap.get(protocol) || 0) + (item.requests || 0)
+        );
+      });
+
+      // SSL 版本
+      const sslVersions = group.sum?.clientSSLMap || [];
+      sslVersions.forEach((item) => {
+        const protocol = item.clientSSLProtocol || "unknown";
+        sslVersionMap.set(
+          protocol,
+          (sslVersionMap.get(protocol) || 0) + (item.requests || 0)
+        );
+      });
+
+      // 内容类型
+      const contentTypes = group.sum?.contentTypeMap || [];
+      contentTypes.forEach((item) => {
+        const type = item.edgeResponseContentTypeName || "unknown";
+        contentTypeMap.set(
+          type,
+          (contentTypeMap.get(type) || 0) + (item.requests || 0)
+        );
+      });
+    });
+
+    // 转换为数组并排序
+    const httpVersions = Array.from(httpVersionMap.entries())
+      .map(([name, requests]) => ({ name, requests }))
+      .sort((a, b) => b.requests - a.requests);
+
+    const sslVersions = Array.from(sslVersionMap.entries())
+      .map(([name, requests]) => ({ name, requests }))
+      .sort((a, b) => b.requests - a.requests);
+
+    const contentTypes = Array.from(contentTypeMap.entries())
+      .map(([name, requests]) => ({ name, requests }))
+      .sort((a, b) => b.requests - a.requests);
+
+    return { httpVersions, sslVersions, contentTypes };
+  } catch (error) {
+    console.error(
+      "Network stats query error:",
+      error.response?.data || error.message
+    );
+    return { httpVersions: [], sslVersions: [], contentTypes: [] };
+  }
+}
+
+// 获取指定域名的 Zone ID
+async function getZoneIdByName(zoneName) {
+  const zones = await getZones();
+  const zone = zones.find(
+    (z) => z.name === zoneName || z.name.includes(zoneName)
+  );
+  return zone?.id || null;
+}
+
 router.get('/network-stats', async (req, res) => {
   try {
     const days = parseInt(req.query.days) || 7;

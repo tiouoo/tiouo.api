@@ -8,12 +8,12 @@ router.get('/workers-analytics', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-async function getWorkersAnalytics(days: number = 7): Promise<WorkerAnalyticsResult> {
+async function getWorkersAnalytics(days = 7) {
   const now = new Date();
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
 
-  const formatDate = (d: Date): string => d.toISOString();
+  const formatDate = (d) => d.toISOString();
 
   const query = `
     query GetWorkersAnalytics($accountTag: String!, $datetimeStart: String!, $datetimeEnd: String!) {
@@ -49,7 +49,7 @@ async function getWorkersAnalytics(days: number = 7): Promise<WorkerAnalyticsRes
 
   try {
     const response = await axios.post(
-      "https://api.cloudflare.com/client/v4/graphql",
+      'https://api.cloudflare.com/client/v4/graphql',
       {
         query,
         variables: {
@@ -61,13 +61,13 @@ async function getWorkersAnalytics(days: number = 7): Promise<WorkerAnalyticsRes
       {
         headers: {
           Authorization: `Bearer ${CF_API_TOKEN}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       }
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
+      console.error('GraphQL errors:', response.data.errors);
       return { workers: [] };
     }
 
@@ -79,9 +79,9 @@ async function getWorkersAnalytics(days: number = 7): Promise<WorkerAnalyticsRes
     const invocations = accounts[0].workersInvocationsAdaptive || [];
 
     // 按 Worker 名称分组
-    const workerMap = new Map<string, WorkerAnalytics[]>();
+    const workerMap = new Map();
     invocations.forEach((invocation) => {
-      const scriptName = invocation.dimensions?.scriptName || "unknown";
+      const scriptName = invocation.dimensions?.scriptName || 'unknown';
       if (!workerMap.has(scriptName)) {
         workerMap.set(scriptName, []);
       }
@@ -92,8 +92,8 @@ async function getWorkersAnalytics(days: number = 7): Promise<WorkerAnalyticsRes
         subrequests: invocation.sum?.subrequests || 0,
         cpuTimeP50: invocation.quantiles?.cpuTimeP50 || 0,
         cpuTimeP99: invocation.quantiles?.cpuTimeP99 || 0,
-        status: invocation.dimensions?.status || "unknown",
-        datetime: invocation.dimensions?.datetime || "",
+        status: invocation.dimensions?.status || 'unknown',
+        datetime: invocation.dimensions?.datetime || '',
       });
     });
 
@@ -106,7 +106,7 @@ async function getWorkersAnalytics(days: number = 7): Promise<WorkerAnalyticsRes
       let totalCpuTimeP50 = 0;
       let totalCpuTimeP99 = 0;
 
-      timeSeries.forEach(item => {
+      timeSeries.forEach((item) => {
         totalRequests += item.requests;
         totalErrors += item.errors;
         totalSubrequests += item.subrequests;
@@ -127,8 +127,8 @@ async function getWorkersAnalytics(days: number = 7): Promise<WorkerAnalyticsRes
           cpuTimeP99: avgCpuTimeP99,
           timeSeries,
           period: {
-            start: formatDate(startDate).split("T")[0],
-            end: formatDate(now).split("T")[0],
+            start: formatDate(startDate).split('T')[0],
+            end: formatDate(now).split('T')[0],
             days,
           },
         },
@@ -137,10 +137,7 @@ async function getWorkersAnalytics(days: number = 7): Promise<WorkerAnalyticsRes
 
     return { workers };
   } catch (error) {
-    console.error(
-      "Workers analytics query error:",
-      error.response?.data || error.message
-    );
+    console.error('Workers analytics query error:', error.response?.data || error.message);
     return { workers: [] };
   }
 }

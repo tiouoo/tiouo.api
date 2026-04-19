@@ -1,3 +1,161 @@
+// 使用 GraphQL 查询账户级别分析数据
+async function queryAccountAnalytics(startDate, endDate) {
+  const query = `
+    query GetAccountAnalytics($accountTag: String!, $start: Date!, $end: Date!) {
+      viewer {
+        accounts(filter: { accountTag: $accountTag }) {
+          httpRequests1dGroups(
+            limit: 100
+            filter: { date_geq: $start, date_lt: $end }
+          ) {
+            sum {
+              requests
+              bytes
+              pageViews
+            }
+            uniq {
+              uniques
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      "https://api.cloudflare.com/client/v4/graphql",
+      {
+        query,
+        variables: {
+          accountTag: CF_ACCOUNT_ID,
+          start: startDate,
+          end: endDate,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${CF_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.data.errors) {
+      console.error("GraphQL errors:", response.data.errors);
+      return { requests: 0, bandwidth: 0, visits: 0, pageViews: 0 };
+    }
+
+    const accounts = response.data?.data?.viewer?.accounts;
+    if (!accounts || accounts.length === 0) {
+      return await queryZonesAnalytics(startDate, endDate);
+    }
+
+    const groups = accounts[0].httpRequests1dGroups || [];
+    let requests = 0,
+      bandwidth = 0,
+      visits = 0,
+      pageViews = 0;
+
+    groups.forEach((group) => {
+      requests += group.sum?.requests || 0;
+      bandwidth += group.sum?.bytes || 0;
+      pageViews += group.sum?.pageViews || 0;
+      visits += group.uniq?.uniques || 0;
+    });
+
+    return { requests, bandwidth, visits, pageViews };
+  } catch (error) {
+    console.error(
+      "GraphQL query error:",
+      error.response?.data || error.message
+    );
+    return { requests: 0, bandwidth: 0, visits: 0, pageViews: 0 };
+  }
+}
+
+// 备用：通过 zones 查询分析数据
+async function queryZonesAnalytics(startDate, endDate) {
+  const zones = await getZones();
+  if (zones.length === 0) {
+    return { requests: 0, bandwidth: 0, visits: 0, pageViews: 0 };
+  }
+
+  const query = `
+    query GetZoneAnalytics($zoneTag: String!, $start: Date!, $end: Date!) {
+      viewer {
+        zones(filter: { zoneTag: $zoneTag }) {
+          httpRequests1dGroups(
+            limit: 100
+            filter: { date_geq: $start, date_lt: $end }
+          ) {
+            sum {
+              requests
+              bytes
+              pageViews
+            }
+            uniq {
+              uniques
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const results = await Promise.all(
+    zones.map(async (zone) => {
+      try {
+        const response = await axios.post(
+          "https://api.cloudflare.com/client/v4/graphql",
+          {
+            query,
+            variables: {
+              zoneTag: zone.id,
+              start: startDate,
+              end: endDate,
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${CF_API_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const zoneData = response.data?.data?.viewer?.zones?.[0];
+        const groups = zoneData?.httpRequests1dGroups || [];
+        let requests = 0,
+          bandwidth = 0,
+          visits = 0,
+          pageViews = 0;
+
+        groups.forEach((group) => {
+          requests += group.sum?.requests || 0;
+          bandwidth += group.sum?.bytes || 0;
+          pageViews += group.sum?.pageViews || 0;
+          visits += group.uniq?.uniques || 0;
+        });
+
+        return { requests, bandwidth, visits, pageViews };
+      } catch (error) {
+        return { requests: 0, bandwidth: 0, visits: 0, pageViews: 0 };
+      }
+    })
+  );
+
+  return results.reduce(
+    (acc, curr) => ({
+      requests: acc.requests + curr.requests,
+      bandwidth: acc.bandwidth + curr.bandwidth,
+      visits: acc.visits + curr.visits,
+      pageViews: acc.pageViews + curr.pageViews,
+    }),
+    { requests: 0, bandwidth: 0, visits: 0, pageViews: 0 }
+  );
+}
+
 router.get('/analytics', async (req, res) => {
   try {
     const days = parseInt(req.query.days) || 7;
@@ -9,7 +167,7 @@ router.get('/analytics', async (req, res) => {
   }
 });
 
-async function getAccountAnalytics(days: number = 7): Promise<AccountAnalytics> {
+async function getAccountAnalytics(days = 7) {
   const now = new Date();
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
@@ -17,7 +175,7 @@ async function getAccountAnalytics(days: number = 7): Promise<AccountAnalytics> 
   const prevStartDate = new Date(startDate);
   prevStartDate.setDate(prevStartDate.getDate() - days);
 
-  const formatDate = (d: Date): string => (d.toISOString().split("T")[0] || "");
+  const formatDate = (d) => (d.toISOString().split("T")[0] || "");
 
   try {
     const [current, prev] = await Promise.all([
@@ -25,7 +183,7 @@ async function getAccountAnalytics(days: number = 7): Promise<AccountAnalytics> 
       queryAccountAnalytics(formatDate(prevStartDate), formatDate(startDate)),
     ]);
 
-    const calcChange = (curr: number, previous: number): number => {
+    const calcChange = (curr, previous) => {
       if (previous === 0) return curr > 0 ? 100 : 0;
       return ((curr - previous) / previous) * 100;
     };
