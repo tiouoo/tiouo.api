@@ -75,6 +75,8 @@
  *               type: string
  *               example: "Internal server error"
  */
+const { getGithubWallData } = require('./contribution');
+
 router.get('/wall', async (req, res) => {
   try {
     const username = req.query.username;

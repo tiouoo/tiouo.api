@@ -1,10 +1,17 @@
+const { getZoneWebTraffic } = require('./zone-traffic');
+const { getZones } = require('./zones');
+
 router.get('/all-zones-traffic', async (req, res) => {
   try {
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken) {
+      return res.status(400).json({ success: false, error: 'Missing cf_api_token parameter' });
+    }
     const days = parseInt(req.query.days) || 7;
-    const zones = await getZones();
+    const zones = await getZones(cfApiToken);
     const trafficData = await Promise.all(
       zones.map(async (zone) => {
-        const data = await getZoneWebTraffic(zone.name, days);
+        const data = await getZoneWebTraffic(zone.name, days, cfApiToken);
         return { zone: zone.name, data };
       })
     );
@@ -14,21 +21,3 @@ router.get('/all-zones-traffic', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-async function getZones() {
-  try {
-    const response = await axios.get(`${'https://api.cloudflare.com/client/v4'}/zones`, {
-      headers: {
-        Authorization: `Bearer ${CF_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.data.success) {
-      console.error('Zones API error:', response.data.errors);
-      return [];
-    }
-    return response.data.result || [];
-  } catch (error) {
-    console.error('Failed to fetch zones:', error.response?.data || error.message);
-    return [];
-  }
-}

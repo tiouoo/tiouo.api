@@ -1,14 +1,13 @@
 // 获取请求时间序列数据（用于折线图）
-async function getRequestsTimeSeries(days = 7) {
+async function getRequestsTimeSeries(days = 7, cfAccountId, cfApiToken) {
   const now = new Date();
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
 
   const formatDate = (d) => (d.toISOString().split("T")[0] || "");
 
-  // 如果是24小时内，使用小时级别数据
   if (days <= 1) {
-    return await getHourlyTimeSeries(startDate, now);
+    return await getHourlyTimeSeries(startDate, now, cfAccountId, cfApiToken);
   }
 
   const query = `
@@ -43,14 +42,14 @@ async function getRequestsTimeSeries(days = 7) {
       {
         query,
         variables: {
-          accountTag: CF_ACCOUNT_ID,
+          accountTag: cfAccountId,
           start: formatDate(startDate),
           end: formatDate(now),
         },
       },
       {
         headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
+          Authorization: `Bearer ${cfApiToken}`,
           "Content-Type": "application/json",
         },
       }
@@ -85,7 +84,7 @@ async function getRequestsTimeSeries(days = 7) {
 }
 
 // 获取小时级别时间序列数据
-async function getHourlyTimeSeries(startDate, endDate) {
+async function getHourlyTimeSeries(startDate, endDate, cfAccountId, cfApiToken) {
   const query = `
     query GetHourlyTimeSeries($accountTag: String!, $start: DateTime!, $end: DateTime!) {
       viewer {
@@ -118,14 +117,14 @@ async function getHourlyTimeSeries(startDate, endDate) {
       {
         query,
         variables: {
-          accountTag: CF_ACCOUNT_ID,
+          accountTag: cfAccountId,
           start: startDate.toISOString(),
           end: endDate.toISOString(),
         },
       },
       {
         headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
+          Authorization: `Bearer ${cfApiToken}`,
           "Content-Type": "application/json",
         },
       }
@@ -161,8 +160,13 @@ async function getHourlyTimeSeries(startDate, endDate) {
 
 router.get('/timeseries', async (req, res) => {
   try {
+    const cfAccountId = req.query.cf_account_id;
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken || !cfAccountId) {
+      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+    }
     const days = parseInt(req.query.days) || 7;
-    const data = await getRequestsTimeSeries(days);
+    const data = await getRequestsTimeSeries(days, cfAccountId, cfApiToken);
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching time series:', error.message);

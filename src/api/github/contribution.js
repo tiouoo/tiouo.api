@@ -302,3 +302,5 @@ async function getGithubContributions(username, year = -1, limit = 0) {
     throw error;
   }
 }
+
+module.exports = { getGithubWallData, getGithubContributions };

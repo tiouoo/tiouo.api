@@ -1,9 +1,9 @@
 // 获取所有 Cloudflare 域名
-async function getZones() {
+async function getZones(cfApiToken) {
   try {
     const response = await axios.get(`${"https://api.cloudflare.com/client/v4"}/zones`, {
       headers: {
-        Authorization: `Bearer ${CF_API_TOKEN}`,
+        Authorization: `Bearer ${cfApiToken}`,
         "Content-Type": "application/json",
       },
     });
@@ -23,7 +23,11 @@ async function getZones() {
 
 router.get('/zones', async (req, res) => {
   try {
-    const zones = await getZones();
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken) {
+      return res.status(400).json({ success: false, error: 'Missing cf_api_token parameter' });
+    }
+    const zones = await getZones(cfApiToken);
     res.json({ success: true, data: zones });
   } catch (error) {
     console.error('Error fetching Cloudflare zones:', error.message);

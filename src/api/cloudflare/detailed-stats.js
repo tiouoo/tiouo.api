@@ -1,5 +1,7 @@
 // 获取详细统计数据（安全性、缓存、错误）
-async function getDetailedStats(days = 7, zoneName) {
+const { getZones } = require('./zones');
+
+async function getDetailedStats(days = 7, zoneName, cfAccountId, cfApiToken) {
   const now = new Date();
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
@@ -10,15 +12,14 @@ async function getDetailedStats(days = 7, zoneName) {
   const formatDate = (d) => (d.toISOString().split("T")[0] || "");
 
   try {
-    // 获取zoneId（如果提供了zoneName）
     let zoneId;
     if (zoneName) {
-      zoneId = await getZoneIdByName(zoneName);
+      zoneId = await getZoneIdByName(zoneName, cfApiToken);
     }
 
     const [current, prev] = await Promise.all([
-      queryDetailedStats(formatDate(startDate), formatDate(now), zoneId || ''),
-      queryDetailedStats(formatDate(prevStartDate), formatDate(startDate), zoneId || ''),
+      queryDetailedStats(formatDate(startDate), formatDate(now), zoneId || '', cfAccountId, cfApiToken),
+      queryDetailedStats(formatDate(prevStartDate), formatDate(startDate), zoneId || '', cfAccountId, cfApiToken),
     ]);
 
     const calcChange = (curr, previous) => {
@@ -127,7 +128,7 @@ async function getDetailedStats(days = 7, zoneName) {
 }
 
 // 查询详细统计数据
-async function queryDetailedStats(startDate, endDate, zoneTag) {
+async function queryDetailedStats(startDate, endDate, zoneTag, cfAccountId, cfApiToken) {
   let query;
   let variables;
 
@@ -191,7 +192,7 @@ async function queryDetailedStats(startDate, endDate, zoneTag) {
       }
     `;
     variables = {
-      accountTag: CF_ACCOUNT_ID,
+      accountTag: cfAccountId,
       start: startDate,
       end: endDate,
     };
@@ -206,7 +207,7 @@ async function queryDetailedStats(startDate, endDate, zoneTag) {
       },
       {
         headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
+          Authorization: `Bearer ${cfApiToken}`,
           "Content-Type": "application/json",
         },
       }
@@ -277,8 +278,8 @@ function getEmptyDetailedStats() {
 }
 
 // 获取指定域名的 Zone ID
-async function getZoneIdByName(zoneName) {
-  const zones = await getZones();
+async function getZoneIdByName(zoneName, cfApiToken) {
+  const zones = await getZones(cfApiToken);
   const zone = zones.find(
     (z) => z.name === zoneName || z.name.includes(zoneName)
   );
@@ -287,9 +288,14 @@ async function getZoneIdByName(zoneName) {
 
 router.get('/detailed-stats', async (req, res) => {
   try {
+    const cfAccountId = req.query.cf_account_id;
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken || !cfAccountId) {
+      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+    }
     const days = parseInt(req.query.days) || 7;
     const zoneName = req.query.zone;
-    const data = await getDetailedStats(days, zoneName);
+    const data = await getDetailedStats(days, zoneName, cfAccountId, cfApiToken);
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching detailed stats:', error.message);

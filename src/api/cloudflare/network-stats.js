@@ -1,5 +1,7 @@
 // 获取网络统计数据（HTTP版本、SSL版本、内容类型）
-async function getNetworkStats(days = 7, zoneName) {
+const { getZones } = require('./zones');
+
+async function getNetworkStats(days = 7, zoneName, cfAccountId, cfApiToken) {
   const now = new Date();
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
@@ -9,10 +11,9 @@ async function getNetworkStats(days = 7, zoneName) {
   let query;
   let variables;
 
-  // 获取zoneId（如果提供了zoneName）
   let zoneId;
   if (zoneName) {
-    zoneId = await getZoneIdByName(zoneName) || '';
+    zoneId = await getZoneIdByName(zoneName, cfApiToken) || '';
   }
 
   if (zoneId) {
@@ -81,7 +82,7 @@ async function getNetworkStats(days = 7, zoneName) {
       }
     `;
     variables = {
-      accountTag: CF_ACCOUNT_ID,
+      accountTag: cfAccountId,
       start: formatDate(startDate),
       end: formatDate(now),
     };
@@ -96,7 +97,7 @@ async function getNetworkStats(days = 7, zoneName) {
       },
       {
         headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
+          Authorization: `Bearer ${cfApiToken}`,
           "Content-Type": "application/json",
         },
       }
@@ -185,8 +186,8 @@ async function getNetworkStats(days = 7, zoneName) {
 }
 
 // 获取指定域名的 Zone ID
-async function getZoneIdByName(zoneName) {
-  const zones = await getZones();
+async function getZoneIdByName(zoneName, cfApiToken) {
+  const zones = await getZones(cfApiToken);
   const zone = zones.find(
     (z) => z.name === zoneName || z.name.includes(zoneName)
   );
@@ -195,9 +196,14 @@ async function getZoneIdByName(zoneName) {
 
 router.get('/network-stats', async (req, res) => {
   try {
+    const cfAccountId = req.query.cf_account_id;
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken || !cfAccountId) {
+      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+    }
     const days = parseInt(req.query.days) || 7;
     const zoneName = req.query.zone;
-    const data = await getNetworkStats(days, zoneName);
+    const data = await getNetworkStats(days, zoneName, cfAccountId, cfApiToken);
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching network stats:', error.message);

@@ -1,5 +1,7 @@
 // 使用 GraphQL 查询账户级别分析数据
-async function queryAccountAnalytics(startDate, endDate) {
+const { getZones } = require('./zones');
+
+async function queryAccountAnalytics(startDate, endDate, cfAccountId, cfApiToken) {
   const query = `
     query GetAccountAnalytics($accountTag: String!, $start: Date!, $end: Date!) {
       viewer {
@@ -28,14 +30,14 @@ async function queryAccountAnalytics(startDate, endDate) {
       {
         query,
         variables: {
-          accountTag: CF_ACCOUNT_ID,
+          accountTag: cfAccountId,
           start: startDate,
           end: endDate,
         },
       },
       {
         headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
+          Authorization: `Bearer ${cfApiToken}`,
           "Content-Type": "application/json",
         },
       }
@@ -48,7 +50,7 @@ async function queryAccountAnalytics(startDate, endDate) {
 
     const accounts = response.data?.data?.viewer?.accounts;
     if (!accounts || accounts.length === 0) {
-      return await queryZonesAnalytics(startDate, endDate);
+      return await queryZonesAnalytics(startDate, endDate, cfApiToken);
     }
 
     const groups = accounts[0].httpRequests1dGroups || [];
@@ -75,8 +77,8 @@ async function queryAccountAnalytics(startDate, endDate) {
 }
 
 // 备用：通过 zones 查询分析数据
-async function queryZonesAnalytics(startDate, endDate) {
-  const zones = await getZones();
+async function queryZonesAnalytics(startDate, endDate, cfApiToken) {
+  const zones = await getZones(cfApiToken);
   if (zones.length === 0) {
     return { requests: 0, bandwidth: 0, visits: 0, pageViews: 0 };
   }
@@ -118,7 +120,7 @@ async function queryZonesAnalytics(startDate, endDate) {
           },
           {
             headers: {
-              Authorization: `Bearer ${CF_API_TOKEN}`,
+              Authorization: `Bearer ${cfApiToken}`,
               "Content-Type": "application/json",
             },
           }
@@ -139,7 +141,7 @@ async function queryZonesAnalytics(startDate, endDate) {
         });
 
         return { requests, bandwidth, visits, pageViews };
-      } catch (error) {
+      } catch {
         return { requests: 0, bandwidth: 0, visits: 0, pageViews: 0 };
       }
     })
@@ -158,8 +160,13 @@ async function queryZonesAnalytics(startDate, endDate) {
 
 router.get('/analytics', async (req, res) => {
   try {
+    const cfAccountId = req.query.cf_account_id;
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken || !cfAccountId) {
+      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+    }
     const days = parseInt(req.query.days) || 7;
-    const data = await getAccountAnalytics(days);
+    const data = await getAccountAnalytics(days, cfAccountId, cfApiToken);
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching Cloudflare analytics:', error.message);
@@ -167,7 +174,7 @@ router.get('/analytics', async (req, res) => {
   }
 });
 
-async function getAccountAnalytics(days = 7) {
+async function getAccountAnalytics(days = 7, cfAccountId, cfApiToken) {
   const now = new Date();
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
@@ -179,8 +186,8 @@ async function getAccountAnalytics(days = 7) {
 
   try {
     const [current, prev] = await Promise.all([
-      queryAccountAnalytics(formatDate(startDate), formatDate(now)),
-      queryAccountAnalytics(formatDate(prevStartDate), formatDate(startDate)),
+      queryAccountAnalytics(formatDate(startDate), formatDate(now), cfAccountId, cfApiToken),
+      queryAccountAnalytics(formatDate(prevStartDate), formatDate(startDate), cfAccountId, cfApiToken),
     ]);
 
     const calcChange = (curr, previous) => {

@@ -1,6 +1,8 @@
 // 获取单个域名的 Web 流量统计（请求、带宽、唯一访问者）
-async function getZoneWebTraffic(zoneName, days = 7) {
-  const zoneId = await getZoneIdByName(zoneName);
+const { getZones } = require('./zones');
+
+async function getZoneWebTraffic(zoneName, days = 7, cfApiToken) {
+  const zoneId = await getZoneIdByName(zoneName, cfApiToken);
   if (!zoneId) {
     return { error: `Zone not found: ${zoneName}`, requests: { total: 0, cached: 0, uncached: 0, max: 0, min: 0 }, bandwidth: { total: 0, cached: 0, uncached: 0, max: 0, min: 0 }, visitors: { total: 0, max: 0, min: 0 }, timeSeries: [], period: { start: '', end: '', days: 0 } };
   }
@@ -13,7 +15,7 @@ async function getZoneWebTraffic(zoneName, days = 7) {
 
   // 根据天数选择使用日级别或小时级别数据
   if (days <= 1) {
-    return await getZoneWebTrafficHourly(zoneId, startDate, now);
+    return await getZoneWebTrafficHourly(zoneId, startDate, now, cfApiToken);
   }
 
   const query = `
@@ -56,7 +58,7 @@ async function getZoneWebTraffic(zoneName, days = 7) {
       },
       {
         headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
+          Authorization: `Bearer ${cfApiToken}`,
           "Content-Type": "application/json",
         },
       }
@@ -157,7 +159,7 @@ async function getZoneWebTraffic(zoneName, days = 7) {
 }
 
 // 获取小时级别的域名流量数据
-async function getZoneWebTrafficHourly(zoneId, startDate, endDate) {
+async function getZoneWebTrafficHourly(zoneId, startDate, endDate, cfApiToken) {
   const query = `
     query GetZoneWebTrafficHourly($zoneTag: String!, $start: DateTime!, $end: DateTime!) {
       viewer {
@@ -198,7 +200,7 @@ async function getZoneWebTrafficHourly(zoneId, startDate, endDate) {
       },
       {
         headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
+          Authorization: `Bearer ${cfApiToken}`,
           "Content-Type": "application/json",
         },
       }
@@ -314,8 +316,8 @@ function getEmptyWebTraffic() {
 }
 
 // 获取指定域名的 Zone ID
-async function getZoneIdByName(zoneName) {
-  const zones = await getZones();
+async function getZoneIdByName(zoneName, cfApiToken) {
+  const zones = await getZones(cfApiToken);
   const zone = zones.find(
     (z) => z.name === zoneName || z.name.includes(zoneName)
   );
@@ -324,12 +326,18 @@ async function getZoneIdByName(zoneName) {
 
 router.get('/zone-traffic', async (req, res) => {
   try {
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken) {
+      return res.status(400).json({ success: false, error: 'Missing cf_api_token parameter' });
+    }
     const zoneName = req.query.zone || 'yik.at';
     const days = parseInt(req.query.days) || 7;
-    const data = await getZoneWebTraffic(zoneName, days);
+    const data = await getZoneWebTraffic(zoneName, days, cfApiToken);
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching zone traffic:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+module.exports = { getZoneWebTraffic };

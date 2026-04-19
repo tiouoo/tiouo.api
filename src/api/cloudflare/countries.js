@@ -1,5 +1,5 @@
 // 获取区域请求数据（用于柱状图）
-async function getCountryAnalytics(days = 7) {
+async function getCountryAnalytics(days = 7, cfAccountId, cfApiToken) {
   const now = new Date();
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - days);
@@ -38,14 +38,14 @@ async function getCountryAnalytics(days = 7) {
       {
         query,
         variables: {
-          accountTag: CF_ACCOUNT_ID,
+          accountTag: cfAccountId,
           start: formatDate(startDate),
           end: formatDate(now),
         },
       },
       {
         headers: {
-          Authorization: `Bearer ${CF_API_TOKEN}`,
+          Authorization: `Bearer ${cfApiToken}`,
           "Content-Type": "application/json",
         },
       }
@@ -118,8 +118,13 @@ async function getCountryAnalytics(days = 7) {
 
 router.get('/countries', async (req, res) => {
   try {
+    const cfAccountId = req.query.cf_account_id;
+    const cfApiToken = req.query.cf_api_token;
+    if (!cfApiToken || !cfAccountId) {
+      return res.status(400).json({ success: false, error: 'Missing cf_account_id or cf_api_token parameter' });
+    }
     const days = parseInt(req.query.days) || 7;
-    const data = await getCountryAnalytics(days);
+    const data = await getCountryAnalytics(days, cfAccountId, cfApiToken);
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching country analytics:', error.message);

@@ -10,7 +10,7 @@ router.get('/verify', async (req, res) => {
     }
     const response = await axios.get('https://api.cloudflare.com/client/v4/user/tokens/verify', {
       headers: {
-        Authorization: `Bearer ${CF_API_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
